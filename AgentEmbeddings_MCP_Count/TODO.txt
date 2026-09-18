@@ -1,0 +1,2 @@
+- Fix scaling for clustering plots
+
