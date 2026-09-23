@@ -23,8 +23,8 @@ class CClusteringAnalysis:
     def __init__(self, MAT_E):
         self.MAT_E = MAT_E
         self.dbManager = CDatabaseManager()
-        self.canary_users = self.dbManager.get_canary_users()
-        self.all_user_ids = self.dbManager.get_all_user_ids()
+        self.canary_agents = self.dbManager.get_canary_agents()
+        self.all_agent_ids = self.dbManager.get_all_agent_ids()
 
     # Generate number of clusters using elbow method
     # Goal is to minimize WCSS (within cluster sum of squares)
@@ -74,17 +74,17 @@ class CClusteringAnalysis:
         return cluster_labels, cluster_centroids
     
 if __name__ == "__main__":
-    MAT_E = torch.zeros(3, 3) # 2 users x 3 tools
+    MAT_E = torch.zeros(3, 3) # 2 agents x 3 tools
     # ------ Manually Assign Values
-    MAT_E[0][0] = 1 # user 0, tool 0
-    MAT_E[0][1] = 2 # user 0, tool 1
-    MAT_E[0][2] = 2 # user 0, tool 2
-    MAT_E[1][0] = 3 # user 1, tool 0
-    MAT_E[1][1] = 1 # user 1, tool 1
-    MAT_E[1][2] = 0 # user 1, tool 2
-    MAT_E[2][0] = 4 # user 1, tool 0
-    MAT_E[2][1] = 3 # user 1, tool 1
-    MAT_E[2][2] = 1 # user 1, tool 2
+    MAT_E[0][0] = 1 # agent 0, tool 0
+    MAT_E[0][1] = 2 # agent 0, tool 1
+    MAT_E[0][2] = 2 # agent 0, tool 2
+    MAT_E[1][0] = 3 # agent 1, tool 0
+    MAT_E[1][1] = 1 # agent 1, tool 1
+    MAT_E[1][2] = 0 # agent 1, tool 2
+    MAT_E[2][0] = 4 # agent 1, tool 0
+    MAT_E[2][1] = 3 # agent 1, tool 1
+    MAT_E[2][2] = 1 # agent 1, tool 2
     
     analysis = CClusteringAnalysis(MAT_E)
     wcss, optimal_clusters = analysis.determine_optimal_number_of_clusters_elbow()

@@ -30,54 +30,54 @@ class CGenerateSyntheticData:
         self.dbManager.create_tables()
         self.cache = CCache()
         random.seed(42)  # For reproducibility
-        self.canary_1_user_ids = []
-        self.canary_2_user_ids = []
-        self.ref_canary_1_user_id = -1
-        self.ref_canary_2_user_id = -1
+        self.canary_1_agent_ids = []
+        self.canary_2_agent_ids = []
+        self.ref_canary_1_agent_id = -1
+        self.ref_canary_2_agent_id = -1
         self.ref_canary_1_session_lengths = None
         self.ref_canary_1_session_interactions = None
         self.ref_canary_2_session_lengths = None
         self.ref_canary_2_session_interactions = None
        
         
-    def __create_users__(self):
-        print("Creating users...")
-        for user_id in tqdm(range(1, CConfig.MAX_USERS+1)):
-            insert_user_query = "INSERT INTO users (id) VALUES (?);"
-            self.dbManager.execute_query(insert_user_query, (user_id,))
-            self.cache.add_user(user_id)
-        print("All Users created.")
+    def __create_agents__(self):
+        print("Creating agents...")
+        for agent_id in tqdm(range(1, CConfig.MAX_AGENTS+1)):
+            insert_agent_query = "INSERT INTO agents (id) VALUES (?);"
+            self.dbManager.execute_query(insert_agent_query, (agent_id,))
+            self.cache.add_agent(agent_id)
+        print("All Agents created.")
 
-    def __create_canary_users_tables__(self):
-        print("Creating canary users...")
-        # References Canary User
-        # The reference canary user will be 1 for each category
-        allUserIds = self.cache.get_all_user_ids()
-        # Randomly pick a reference user for each canary user
-        # Create a new list of all users which are not canary users    
-        # Calculate number of canary users
-        num_canary_1 = math.ceil((CConfig.PERCENTAGE_USERS_CANARY_1 / 100) * len(allUserIds)) # use allUSerIds and not CConfig
-        num_canary_2 = math.ceil((CConfig.PERCENTAGE_USERS_CANARY_2 / 100) * len(allUserIds))
-        # Insure no overlap between canary user ids, they will come from different ranges
-        self.canary_1_user_ids = random.sample(range(1, math.ceil(len(allUserIds)/2)), num_canary_1+1) # +1 to insure we have 2 Canary users
-        self.canary_2_user_ids = random.sample(range(math.ceil(len(allUserIds)/2)+1, len(allUserIds)), num_canary_2 + 1)    
+    def __create_canary_agents_tables__(self):
+        print("Creating canary agents...")
+        # References Canary Agent
+        # The reference canary agent will be 1 for each category
+        allAgentIds = self.cache.get_all_agent_ids()
+        # Randomly pick a reference agent for each canary agent
+        # Create a new list of all agents which are not canary agents
+        # Calculate number of canary agents
+        num_canary_1 = math.ceil((CConfig.PERCENTAGE_AGENTS_CANARY_1 / 100) * len(allAgentIds)) # use allAgentIds and not CConfig
+        num_canary_2 = math.ceil((CConfig.PERCENTAGE_AGENTS_CANARY_2 / 100) * len(allAgentIds))
+        # Insure no overlap between canary agent ids, they will come from different ranges
+        self.canary_1_agent_ids = random.sample(range(1, math.ceil(len(allAgentIds)/2)), num_canary_1+1) # +1 to insure we have 2 Canary agents
+        self.canary_2_agent_ids = random.sample(range(math.ceil(len(allAgentIds)/2)+1, len(allAgentIds)), num_canary_2 + 1)
         
-        # sort the canary user ids
-        self.canary_1_user_ids.sort()
-        self.canary_2_user_ids.sort()
-        # pick smallest id as reference canary user
-        self.ref_canary_1_user_id = self.canary_1_user_ids[0]
-        self.ref_canary_2_user_id = self.canary_2_user_ids[0]
+        # sort the canary agent ids
+        self.canary_1_agent_ids.sort()
+        self.canary_2_agent_ids.sort()
+        # pick smallest id as reference canary agent
+        self.ref_canary_1_agent_id = self.canary_1_agent_ids[0]
+        self.ref_canary_2_agent_id = self.canary_2_agent_ids[0]
 
-        # Add the canary users to the DB  
-        for user_id in self.canary_1_user_ids:
-            insert_canary_query = "INSERT INTO canary_users (user_id, canary_category) VALUES (?, ?);"
-            self.dbManager.execute_query(insert_canary_query, (user_id, 1))
-        for user_id in self.canary_2_user_ids:
-            insert_canary_query = "INSERT INTO canary_users (user_id, canary_category) VALUES (?, ?);"
-            self.dbManager.execute_query(insert_canary_query, (user_id, 2))
+        # Add the canary agents to the DB
+        for agent_id in self.canary_1_agent_ids:
+            insert_canary_query = "INSERT INTO canary_agents (agent_id, canary_category) VALUES (?, ?);"
+            self.dbManager.execute_query(insert_canary_query, (agent_id, 1))
+        for agent_id in self.canary_2_agent_ids:
+            insert_canary_query = "INSERT INTO canary_agents (agent_id, canary_category) VALUES (?, ?);"
+            self.dbManager.execute_query(insert_canary_query, (agent_id, 2))
 
-        print("All Canary Users created.")
+        print("All Canary Agents created.")
 
     def __create_mcp_servers_and_tools__(self):
         print("Creating MCP servers and tools...")
@@ -91,60 +91,76 @@ class CGenerateSyntheticData:
                 self.cache.add_mcp_tool(mcp_server_id, mcp_tool_id, tool_id)
         print("MCP servers and tools created.")
 
-    # Before running this, ensure users and MCP Servers are created
-    def __create_sessions_and_interactions_for_user__(self, user_id):
-        # User different handling for canary users
-        if user_id in self.canary_1_user_ids and user_id != self.ref_canary_1_user_id: # ref has to be created first
-            self.__update_sessions_and_interactions_for_canary_user__(user_id,
+    # Before running this, ensure agents and MCP Servers are created
+    def __create_sessions_and_interactions_for_agent__(self, agent_id):
+        # Agent different handling for canary agents
+        if agent_id in self.canary_1_agent_ids and agent_id != self.ref_canary_1_agent_id: # ref has to be created first
+            self.__update_sessions_and_interactions_for_canary_agent__(agent_id,
                                                                      self.ref_canary_1_session_lengths,
                                                                      self.ref_canary_1_session_interactions,
                                                                      1)
             return
-        if user_id in self.canary_2_user_ids and user_id != self.ref_canary_2_user_id: # ref. has to be created first
-            self.__update_sessions_and_interactions_for_canary_user__(user_id,
+        if agent_id in self.canary_2_agent_ids and agent_id != self.ref_canary_2_agent_id: # ref. has to be created first
+            self.__update_sessions_and_interactions_for_canary_agent__(agent_id,
                                                                      self.ref_canary_2_session_lengths,
                                                                      self.ref_canary_2_session_interactions,
                                                                      2)
             return
             
         
-        num_sessions = max(1, int(np.random.normal(CConfig.SESSIONS_PER_USER_MEAN, CConfig.SESSIONS_PER_USER_STD)))
+        num_sessions = min(
+            CConfig.MAX_SESSIONS_PER_AGENT,
+            max(
+                1,
+                int(
+                    np.random.normal(
+                        CConfig.SESSIONS_PER_AGENT_MEAN,
+                        CConfig.SESSIONS_PER_AGENT_STD,
+                    )
+                ),
+            ),
+        )
         for session_index in range(num_sessions):
             session_length = max(1, int(np.random.normal(CConfig.SESSIONS_LENGTH_MEAN, CConfig.SESSIONS_LENGTH_STD)))
-            insert_session_query = "INSERT INTO sessions (user_id, session_depth) VALUES (?, ?);"
-            session_id = self.dbManager.execute_query(insert_session_query, (user_id, session_length))
+            insert_session_query = "INSERT INTO sessions (agent_id, session_depth) VALUES (?, ?);"
+            session_id = self.dbManager.execute_query(insert_session_query, (agent_id, session_length))
            
             # Now insert into session_interaction_details
             mcp_server_id = random.randint(1, CConfig.MAX_MCP_SERVERS)
             for seq_num in range(session_length): # Use cache for faster reads
-                no_of_tools = self.cache.get_number_of_tools_for_server(mcp_server_id)
-                # Give preference to MCP server used from last prompt
-                mcp_tool_id = random.randint(1, no_of_tools) # CAUTION Use main tool id
-                tool_id = self.cache.get_tool_id(mcp_server_id, mcp_tool_id)
-                insert_session_interaction_query = "INSERT INTO session_interactions (session_id, tool_id, sequence_number) VALUES (?, ?, ?);"
-                self.dbManager.execute_query(insert_session_interaction_query, (session_id, tool_id, seq_num))
-                # ----------- Compute same MCP server with some probability --------------
-                # Only change mcp server if random prob is more than given
-                if random.random() > CConfig.PROB_OF_TOOL_FROM_SAME_MCP: # random.random() gives [0.0, 1.0)
-                    mcp_server_id = random.randint(1, CConfig.MAX_MCP_SERVERS)
-        # Store reference canary user sessions and interactions
-        # Since user ids are sorted, this will insure canary user ref is stored first before
-        # another canary user is created
-        if user_id == self.ref_canary_1_user_id:
-            self.__assign_sessions_and_interactions_for_ref_canary_users__(1)
-        if user_id == self.ref_canary_2_user_id:
-            self.__assign_sessions_and_interactions_for_ref_canary_users__(2)
+                tool_calls_in_sequence = random.randint(
+                    CConfig.MIN_TOOL_CALLS_PER_SEQUENCE,
+                    CConfig.MAX_TOOL_CALLS_PER_SEQUENCE,
+                )
+                for _ in range(tool_calls_in_sequence):
+                    no_of_tools = self.cache.get_number_of_tools_for_server(mcp_server_id)
+                    # Give preference to MCP server used from last prompt
+                    mcp_tool_id = random.randint(1, no_of_tools) # CAUTION Use main tool id
+                    tool_id = self.cache.get_tool_id(mcp_server_id, mcp_tool_id)
+                    insert_session_interaction_query = "INSERT INTO session_interactions (session_id, tool_id, sequence_number) VALUES (?, ?, ?);"
+                    self.dbManager.execute_query(insert_session_interaction_query, (session_id, tool_id, seq_num))
+                    # ----------- Compute same MCP server with some probability --------------
+                    # Only change mcp server if random prob is more than given
+                    if random.random() > CConfig.PROB_OF_TOOL_FROM_SAME_MCP: # random.random() gives [0.0, 1.0)
+                        mcp_server_id = random.randint(1, CConfig.MAX_MCP_SERVERS)
+        # Store reference canary agent sessions and interactions
+        # Since agent ids are sorted, this will insure canary agent ref is stored first before
+        # another canary agent is created
+        if agent_id == self.ref_canary_1_agent_id:
+            self.__assign_sessions_and_interactions_for_ref_canary_agents__(1)
+        if agent_id == self.ref_canary_2_agent_id:
+            self.__assign_sessions_and_interactions_for_ref_canary_agents__(2)
         return
 
 
-    def __update_sessions_and_interactions_for_canary_user__(self, 
-                                                             user_id, 
+    def __update_sessions_and_interactions_for_canary_agent__(self,
+                                                             agent_id,
                                                              ref_session_lengths:dict,
                                                              ref_session_interactions:dict,
                                                              canary_category):
         
-        # Delete existing sessions and interactions for this canary user
-        #self.dbManager.delete_all_session_data_for_user(user_id)
+        # Delete existing sessions and interactions for this canary agent
+        #self.dbManager.delete_all_session_data_for_agent(agent_id)
         
         # Start Updating sessions and interactions
         for session_id in ref_session_lengths.keys():
@@ -155,75 +171,73 @@ class CGenerateSyntheticData:
                 if session_length > 1:
                     session_length = session_length - random.randint(0,1)
 
-            insert_session_query = "INSERT INTO sessions (user_id, session_depth) VALUES (?, ?);"
-            new_session_id = self.dbManager.execute_query(insert_session_query, (user_id, session_length))
+            insert_session_query = "INSERT INTO sessions (agent_id, session_depth) VALUES (?, ?);"
+            new_session_id = self.dbManager.execute_query(insert_session_query, (agent_id, session_length))
            
-            # Now insert into session_details            
-            seq_num = 0
-            for tool_id in ref_session_interactions[session_id]:    
+            # Preserve the reference sequence number for every copied tool call.
+            for seq_num, tool_id in ref_session_interactions.get(session_id, []):
+                if seq_num >= session_length:
+                    break
                 insert_session_interaction_query = "INSERT INTO session_interactions (session_id, tool_id, sequence_number) VALUES (?, ?, ?);"
                 self.dbManager.execute_query(insert_session_interaction_query, (new_session_id, tool_id, seq_num))
-                seq_num += 1
-                if(seq_num >= session_length): 
-                    break
         return
                 
-    def __create_sessions_and_interactions_for_all_users__(self):
-        print("Creating sessions and interactions for all users...")
-        self.__create_canary_users_tables__() # This should be done first
-        for user_id in tqdm(range(1, CConfig.MAX_USERS + 1)):
-            self.__create_sessions_and_interactions_for_user__(user_id)
+    def __create_sessions_and_interactions_for_all_agents__(self):
+        print("Creating sessions and interactions for all agents...")
+        self.__create_canary_agents_tables__() # This should be done first
+        for agent_id in tqdm(range(1, CConfig.MAX_AGENTS + 1)):
+            self.__create_sessions_and_interactions_for_agent__(agent_id)
 
-    def __assign_sessions_and_interactions_for_ref_canary_users__(self, canary_category):
+    def __assign_sessions_and_interactions_for_ref_canary_agents__(self, canary_category):
         if canary_category == 1:
-            print(f"Get sessions and interactions for canary #1 ref. user id {self.ref_canary_1_user_id}  ...")
-            # Get session length based on user id
-            self.ref_canary_1_session_lengths = self.dbManager.get_all_session_lengths(self.ref_canary_1_user_id)
-            self.ref_canary_1_session_interactions = self.dbManager.get_session_interactions(self.ref_canary_1_user_id)
+            print(f"Get sessions and interactions for canary #1 ref. agent id {self.ref_canary_1_agent_id}  ...")
+            # Get session length based on agent id
+            self.ref_canary_1_session_lengths = self.dbManager.get_all_session_lengths(self.ref_canary_1_agent_id)
+            self.ref_canary_1_session_interactions = self.dbManager.get_session_interactions(self.ref_canary_1_agent_id)
 
         if canary_category == 2:
-            print(f"Get sessions and interactions for canary #2 ref. user id {self.ref_canary_2_user_id}  ...")
-            # Get session length based on user id
-            self.ref_canary_2_session_lengths = self.dbManager.get_all_session_lengths(self.ref_canary_2_user_id)
-            self.ref_canary_2_session_interactions = self.dbManager.get_session_interactions(self.ref_canary_2_user_id)
+            print(f"Get sessions and interactions for canary #2 ref. agent id {self.ref_canary_2_agent_id}  ...")
+            # Get session length based on agent id
+            self.ref_canary_2_session_lengths = self.dbManager.get_all_session_lengths(self.ref_canary_2_agent_id)
+            self.ref_canary_2_session_interactions = self.dbManager.get_session_interactions(self.ref_canary_2_agent_id)
 
     """
-    def __update_sessions_and_interactions_for_all_canary_users__(self):
-        self.dbManager.delete_data_from_tables(['canary_users'])
-        self.__create_canary_users__()
+    def __update_sessions_and_interactions_for_all_canary_agents__(self):
+        self.dbManager.delete_data_from_tables(['canary_agents'])
+        self.__create_canary_agents__()
 
-        # Get all Canary Users from DB
-        allCanaryUsers = self.dbManager.get_canary_users()
+        # Get all Canary Agents from DB
+        allCanaryAgents = self.dbManager.get_canary_agents()
 
-        # Pick 1 canary user as reference
-        ref_canary_1_user_idx = random.sample(range(0, len(allCanaryUsers[1])),1)[0] # This returns a list so take 1
-        ref_canary_2_user_idx = random.sample(range(0, len(allCanaryUsers[2])),1)[0] # This returns a list so take 1
+        # Pick 1 canary agent as reference
+        ref_canary_1_agent_idx = random.sample(range(0, len(allCanaryAgents[1])),1)[0] # This returns a list so take 1
+        ref_canary_2_agent_idx = random.sample(range(0, len(allCanaryAgents[2])),1)[0] # This returns a list so take 1
 
-        ref_canary_1_user_id = allCanaryUsers[1][ref_canary_1_user_idx]
-        ref_canary_2_user_id = allCanaryUsers[2][ref_canary_2_user_idx]
+        ref_canary_1_agent_id = allCanaryAgents[1][ref_canary_1_agent_idx]
+        ref_canary_2_agent_id = allCanaryAgents[2][ref_canary_2_agent_idx]
 
-        # Randomly pick a reference user for each canary user
-        # Create a new list of all users which are not canary users
-        allCanaryUsers[1].remove(ref_canary_1_user_id) 
-        allCanaryUsers[2].remove(ref_canary_2_user_id)
+        # Randomly pick a reference agent for each canary agent
+        # Create a new list of all agents which are not canary agents
+        allCanaryAgents[1].remove(ref_canary_1_agent_id)
+        allCanaryAgents[2].remove(ref_canary_2_agent_id)
     
-        print(f"Updating sessions and interactions for canary #1 using ref. user id {ref_canary_1_user_id}  ...")
-        # Get session length based on user id
-        ref_session_lengths = self.dbManager.get_all_session_lengths(ref_canary_1_user_id)
-        ref_session_interactions = self.dbManager.get_session_interactions(ref_canary_1_user_id)
+        print(f"Updating sessions and interactions for canary #1 using ref. agent id {ref_canary_1_agent_id}  ...")
+        # Get session length based on agent id
+        ref_session_lengths = self.dbManager.get_all_session_lengths(ref_canary_1_agent_id)
+        ref_session_interactions = self.dbManager.get_session_interactions(ref_canary_1_agent_id)
         
-        for idx in tqdm(range(0, len(allCanaryUsers[1]))):
-            self.__update_sessions_and_interactions_for_canary_user__(allCanaryUsers[1][idx],
+        for idx in tqdm(range(0, len(allCanaryAgents[1]))):
+            self.__update_sessions_and_interactions_for_canary_agent__(allCanaryAgents[1][idx],
                                                                       ref_session_lengths,
                                                                       ref_session_interactions,1) 
         
-        print(f"Updating sessions and interactions for canary #2 using ref. user id {ref_canary_2_user_id}  ...")
-        # Get session length based on user id
-        ref_session_lengths = self.dbManager.get_all_session_lengths(ref_canary_2_user_id)
-        ref_session_interactions = self.dbManager.get_session_interactions(ref_canary_2_user_id)
+        print(f"Updating sessions and interactions for canary #2 using ref. agent id {ref_canary_2_agent_id}  ...")
+        # Get session length based on agent id
+        ref_session_lengths = self.dbManager.get_all_session_lengths(ref_canary_2_agent_id)
+        ref_session_interactions = self.dbManager.get_session_interactions(ref_canary_2_agent_id)
         
-        for idx in tqdm(range(0, len(allCanaryUsers[2]))):
-            self.__update_sessions_and_interactions_for_canary_user__(allCanaryUsers[2][idx],
+        for idx in tqdm(range(0, len(allCanaryAgents[2]))):
+            self.__update_sessions_and_interactions_for_canary_agent__(allCanaryAgents[2][idx],
                                                                       ref_session_lengths,
                                                                       ref_session_interactions,2) 
         return
@@ -232,14 +246,14 @@ class CGenerateSyntheticData:
     def generate_synthetic_data(self):
         dataGenerator = CGenerateSyntheticData()
         # Order is important here
-        dataGenerator.__create_users__()
+        dataGenerator.__create_agents__()
         dataGenerator.__create_mcp_servers_and_tools__()
-        dataGenerator.__create_sessions_and_interactions_for_all_users__()
-        #dataGenerator.__update_sessions_and_interactions_for_all_canary_users__()
+        dataGenerator.__create_sessions_and_interactions_for_all_agents__()
+        #dataGenerator.__update_sessions_and_interactions_for_all_canary_agents__()
 
 if __name__ == "__main__":
     CDatabaseManager.delete_db_file()
     dataGenerator = CGenerateSyntheticData() # This will create the file so dont move it earlier
     dataGenerator.generate_synthetic_data()
-    #dataGenerator.__update_sessions_and_interactions_for_all_canary_users__()
+    #dataGenerator.__update_sessions_and_interactions_for_all_canary_agents__()
     

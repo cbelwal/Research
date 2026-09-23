@@ -1,9 +1,9 @@
 """
 Generate agent embeddings with a shared autoencoder.
 
-The encoder consumes each complete user-tool vector and produces the user
+The encoder consumes each complete agent-tool vector and produces the agent
 embedding. The decoder reconstructs the original vector, causing the shared
-embedding space to preserve tool-usage patterns across all users.
+embedding space to preserve tool-usage patterns across all agents.
 """
 import os
 import sys
@@ -15,8 +15,8 @@ from tqdm import tqdm
 topRootPath = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(topRootPath)
 
-from Algorithms.Helpers.CUserToolAutoencoder import CUserToolAutoencoder
-from Algorithms.Helpers.IUserToolMatrix import IUserToolMatrix
+from Algorithms.Helpers.CAgentToolAutoencoder import CAgentToolAutoencoder
+from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 
 MAX_EPOCHS = 5000
 LEARNING_RATE = 2e-2
@@ -41,25 +41,25 @@ def _weighted_reconstruction_loss(reconstructed, target, reduction: str = "mean"
 
 def Alg_2_AutoEncoder(
     embeddingDimensions: int = 8,
-    testData: IUserToolMatrix = None,
+    testData: IAgentToolMatrix = None,
 ):
     if testData is None:
         raise ValueError("testData is required")
     if embeddingDimensions <= 0:
         raise ValueError("embeddingDimensions must be greater than zero")
 
-    MAT_u_tau = testData.get_MAT_u_tau().float()
-    if MAT_u_tau.ndim != 2:
-        raise ValueError("The user-tool matrix must be two-dimensional")
-    if MAT_u_tau.shape != (testData.NumberOfUsers, testData.NumberOfTools):
+    MAT_a_tau = testData.get_MAT_a_tau().float()
+    if MAT_a_tau.ndim != 2:
+        raise ValueError("The agent-tool matrix must be two-dimensional")
+    if MAT_a_tau.shape != (testData.NumberOfAgents, testData.NumberOfTools):
         raise ValueError(
-            "The user-tool matrix shape does not match NumberOfUsers and NumberOfTools"
+            "The agent-tool matrix shape does not match NumberOfAgents and NumberOfTools"
         )
-    if testData.NumberOfUsers <= 0 or testData.NumberOfTools <= 0:
-        raise ValueError("The user-tool matrix must contain users and tools")
+    if testData.NumberOfAgents <= 0 or testData.NumberOfTools <= 0:
+        raise ValueError("The agent-tool matrix must contain agents and tools")
 
     torch.manual_seed(RANDOM_SEED)
-    model = CUserToolAutoencoder(
+    model = CAgentToolAutoencoder(
         numberOfTools=testData.NumberOfTools,
         embeddingDimensions=embeddingDimensions,
     )
@@ -67,8 +67,8 @@ def Alg_2_AutoEncoder(
 
     generator = torch.Generator().manual_seed(RANDOM_SEED)
     trainingLoader = DataLoader(
-        TensorDataset(MAT_u_tau),
-        batch_size=min(BATCH_SIZE, testData.NumberOfUsers),
+        TensorDataset(MAT_a_tau),
+        batch_size=min(BATCH_SIZE, testData.NumberOfAgents),
         shuffle=True,
         generator=generator,
     )
@@ -85,15 +85,15 @@ def Alg_2_AutoEncoder(
             optimizer.step()
             epochLoss += loss.item() * batch.shape[0]
 
-        epochLoss /= testData.NumberOfUsers
+        epochLoss /= testData.NumberOfAgents
         if epochLoss < MIN_TARGET_LOSS:
             break
 
-    MAT_E = torch.zeros(testData.NumberOfUsers, embeddingDimensions)
-    loss_for_each_user = torch.zeros(testData.NumberOfUsers)
+    MAT_E = torch.zeros(testData.NumberOfAgents, embeddingDimensions)
+    loss_for_each_agent = torch.zeros(testData.NumberOfAgents)
     inferenceLoader = DataLoader(
-        TensorDataset(MAT_u_tau),
-        batch_size=min(BATCH_SIZE, testData.NumberOfUsers),
+        TensorDataset(MAT_a_tau),
+        batch_size=min(BATCH_SIZE, testData.NumberOfAgents),
         shuffle=False,
     )
 
@@ -104,7 +104,7 @@ def Alg_2_AutoEncoder(
             reconstructed, embeddings = model(batch)
             batchSize = batch.shape[0]
             MAT_E[offset:offset + batchSize] = embeddings
-            loss_for_each_user[offset:offset + batchSize] = (
+            loss_for_each_agent[offset:offset + batchSize] = (
                 _weighted_reconstruction_loss(
                     reconstructed,
                     batch,
@@ -113,4 +113,4 @@ def Alg_2_AutoEncoder(
             )
             offset += batchSize
 
-    return MAT_E, loss_for_each_user
+    return MAT_E, loss_for_each_agent

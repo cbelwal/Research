@@ -19,50 +19,50 @@ from Experiments.Plots.CPlotDistance import CPlotDistance
 
 class CPlotExperimentalData:
     """
-        1. Canary Data - Euclidean and Cosine distance between each user pair (points)
-        2. Euclidean and Cosine sim. between each user pair (Histogram) 
+        1. Canary Data - Euclidean and Cosine distance between each agent pair (points)
+        2. Euclidean and Cosine sim. between each agent pair (Histogram)
         3. PCA plots for each agent embedding
-        4. User Clusters on euclidean and cosine distance
+        4. Agent Clusters on euclidean and cosine distance
     """
     # Analyze only one A/g at a time, for memory efficiency
     def __init__(self,algID:int):
         self.dbManager = CDatabaseManager()
         resultsStore = CResultsStore(algID=algID)
         self.MAT_E = resultsStore.load_embeddings()
-        self.loss_for_each_user = resultsStore.load_training_loss()
+        self.loss_for_each_agent = resultsStore.load_training_loss()
         self.plotDistance =  CPlotDistance(self.MAT_E,algID=algID)
         self.algID = algID
     
-    # Plot euclidean and cosine distance between canary users
-    def plot_canary_users(self):
+    # Plot euclidean and cosine distance between canary agents
+    def plot_canary_agents(self):
         for canary_id in [1,2]:
             print(f"Plotting canary results for canary id: {canary_id}...")
-            self.plotDistance.plot_distance_between_canary_users(canary_id=canary_id, useCosine=False, saveFile=True)
-            self.plotDistance.plot_distance_between_canary_users(canary_id=canary_id, useCosine=True, saveFile=True)
+            self.plotDistance.plot_distance_between_canary_agents(canary_id=canary_id, useCosine=False, saveFile=True)
+            self.plotDistance.plot_distance_between_canary_agents(canary_id=canary_id, useCosine=True, saveFile=True)
     
-    def plot_all_user_pairs(self):
-        print(f"Plotting all user pairs...")
-        self.plotDistance.plot_distance_between_all_users (useCosine=False, saveFile=True)
-        self.plotDistance.plot_distance_between_all_users (useCosine=True, saveFile=True)
+    def plot_all_agent_pairs(self):
+        print(f"Plotting all agent pairs...")
+        self.plotDistance.plot_distance_between_all_agents (useCosine=False, saveFile=True)
+        self.plotDistance.plot_distance_between_all_agents (useCosine=True, saveFile=True)
 
 
     def plot_training_loss(self):
         print(f"Plotting training loss...")
-        CPlotCommon.plot_scatter_y(self.loss_for_each_user,
-                                 title=f"Algorithm {self.algID}:Training Loss for each user",
-                                 xlabel="User Id",
+        CPlotCommon.plot_scatter_y(self.loss_for_each_agent,
+                                 title=f"Algorithm {self.algID}:Training Loss for each agent",
+                                 xlabel="Agent Id",
                                  ylabel="Training Loss",
                                  saveFile=True)
 
     def generate_all_plots(self):
-        self.plot_canary_users()
-        self.plot_all_user_pairs()
+        self.plot_canary_agents()
+        self.plot_all_agent_pairs()
         self.plot_training_loss()
         self.plot_pca_embeddings_xy()
         self.plot_pca_embeddings_canary_xy()
         self.plot_clustering_xy_wcss()
 
-    # Plot PCA dim 1 & PCA dim 2 vs user id
+    # Plot PCA dim 1 & PCA dim 2 vs agent id
     def plot_pca_all_embeddings_y(self):
         print(f"Generating PCA plots...")
         pca=CPCAAnalysis(self.MAT_E)
@@ -72,12 +72,12 @@ class CPlotExperimentalData:
         print(pca_embeddings_2d)
         CPlotCommon.plot_scatter_y(pca_embeddings_2d,
                                  title=f"Algorithm {self.algID}:Embeddings PCA in 2 dimensions",
-                                 xlabel="User Id",
+                                 xlabel="Agent Id",
                                  ylabel="PCA Dimension 2",
                                  saveFile=True)
 
     def plot_pca_embeddings_canary_xy(self):
-        print(f"Generating PCA plots for canary users...")
+        print(f"Generating PCA plots for canary agents...")
         self.plot_pca_embeddings_xy(canary_id=1)
         self.plot_pca_embeddings_xy(canary_id=2)
 
@@ -91,7 +91,7 @@ class CPlotExperimentalData:
             pca_embeddings_2d = pca.generate_pca_for_all(reduce_to_dim=2)
         else:
             title=f"Algorithm {self.algID}:Canary {str(canary_id)} Embeddings PCA"
-            pca_embeddings_2d = pca.generate_pca_for_canary_users(canary_id=canary_id, reduce_to_dim=2)
+            pca_embeddings_2d = pca.generate_pca_for_canary_agents(canary_id=canary_id, reduce_to_dim=2)
         # split embeddings into two lists for plotting
         # X will contains all value in PCA dim 1
         # Y will contains all value in PCA dim 2
@@ -150,7 +150,7 @@ class CPlotExperimentalData:
 if __name__ == "__main__":
     algID = 3
     plotter = CPlotExperimentalData(algID=algID)
-    #plotter.plot_canary_users()
+    #plotter.plot_canary_agents()
     #plotter.plot_training_loss()
     #plotter.plot_embeddings_pca_xy()
     #plotter.plot_embeddings_pca_y()

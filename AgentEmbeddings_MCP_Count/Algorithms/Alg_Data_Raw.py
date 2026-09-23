@@ -1,5 +1,5 @@
 """
-Code to return All_C_hat_u without normalization
+Code to return All_C_hat_a without normalization
 
 These non-normalized tool calls are used in PCA, raw distances etc.
 
@@ -22,31 +22,31 @@ dataPrepHelper = CDataPreparationHelper() # This will take time due to cache cre
 
 """
 Inputs: 
-User and session interaction data from the database
+Agent and session interaction data from the database
 
 Outputs: 
-All_C_hat_u : Dictionary of dictionaries to represent a sparse matrix containing non-normalized tool call frequencies for each user
+All_C_hat_a : Dictionary of dictionaries to represent a sparse matrix containing non-normalized tool call frequencies for each agent
 """
 def Algorithm_Data_Raw():
-    all_C_hat_u_1 = {} # Dictionary of dictionaries to hold C_hat_u_1 for all users
-    allUsersIds = dataPrepHelper.get_all_user_ids()
-    for idx in tqdm(range(0,len(allUsersIds))):
-        userId = allUsersIds[idx]
-        C_u = {}
-        T_u = []
-        sessionIdsForUser = dataPrepHelper.get_sessions_for_user(userId)
+    all_C_hat_a_1 = {} # Dictionary of dictionaries to hold C_hat_a_1 for all agents
+    allAgentsIds = dataPrepHelper.get_all_agent_ids()
+    for idx in tqdm(range(0,len(allAgentsIds))):
+        agentId = allAgentsIds[idx]
+        C_a = {}
+        T_a = []
+        sessionIdsForAgent = dataPrepHelper.get_sessions_for_agent(agentId)
         total_tool_calls = 0
-        for sessionId in sessionIdsForUser:
+        for sessionId in sessionIdsForAgent:
             toolIds = dataPrepHelper.get_tools_for_session(sessionId)
             for toolId in toolIds:
                 total_tool_calls += 1
-                if toolId in C_u:
-                    C_u[toolId] += 1
+                if toolId in C_a:
+                    C_a[toolId] += 1
                 else:
-                    C_u[toolId] = 1
-                if toolId not in T_u:
-                    T_u.append(toolId)
+                    C_a[toolId] = 1
+                if toolId not in T_a:
+                    T_a.append(toolId)
 
-        all_C_hat_u_1[userId] = C_u
-    return all_C_hat_u_1
+        all_C_hat_a_1[agentId] = C_a
+    return all_C_hat_a_1
   

@@ -31,8 +31,8 @@ class CDistanceAnalysis_Baselines_L2:
 
     def __init__(self):
         self.dbManager = CDatabaseManager()
-        self.canary_users = self.dbManager.get_canary_users()
-        self.all_user_ids = self.dbManager.get_all_user_ids()
+        self.canary_agents = self.dbManager.get_canary_agents()
+        self.all_agent_ids = self.dbManager.get_all_agent_ids()
 
         # Load tensor embeddings for algorithms 2, 3, and 11
         self.embeddings_by_alg = {}
@@ -45,9 +45,9 @@ class CDistanceAnalysis_Baselines_L2:
         self._raw_tensor_shape = tuple(store.load_embeddings().shape)
         self._raw_tool_counts = None
 
-    def get_canary_user_ids(self, canary_id):
-        """Get all user IDs for a given canary category."""
-        return self.canary_users.get(canary_id, [])
+    def get_canary_agent_ids(self, canary_id):
+        """Get all agent IDs for a given canary category."""
+        return self.canary_agents.get(canary_id, [])
 
     def get_raw_tool_counts(self):
         """Lazy load raw tool counts as sparse dictionary from database."""
@@ -73,7 +73,7 @@ class CDistanceAnalysis_Baselines_L2:
         Formula: embedding_norm = embedding / ||embedding||_2
 
         Args:
-            MAT_E: Tensor of shape (num_users, embedding_dim).
+            MAT_E: Tensor of shape (num_agents, embedding_dim).
 
         Returns:
             New tensor with each row L2-normalized. Zero-magnitude rows are left as zeros.
@@ -108,7 +108,7 @@ class CDistanceAnalysis_Baselines_L2:
         Formula: scaled = (x - min) / (max - min)
 
         Args:
-            MAT_E: Tensor of shape (num_users, embedding_dim).
+            MAT_E: Tensor of shape (num_agents, embedding_dim).
 
         Returns:
             New tensor with each dimension scaled to [0, 1].
@@ -168,23 +168,23 @@ class CDistanceAnalysis_Baselines_L2:
         return math.sqrt(sum_squared_diff)
 
     # ==================== EMBEDDING DISTANCE FUNCTIONS ====================
-    def compute_pairwise_distances_for_user_group(self, user_ids, MAT_E):
+    def compute_pairwise_distances_for_agent_group(self, agent_ids, MAT_E):
         """
-        Compute all pairwise cosine and euclidean distances within a group of users
+        Compute all pairwise cosine and euclidean distances within a group of agents
         using tensor embeddings.
         Returns lists of cosine_distances and euclidean_distances.
         """
         cosine_distances = []
         euclidean_distances = []
 
-        for i in range(len(user_ids)):
-            user_id_1 = user_ids[i]
-            # CAUTION: MAT_E is 0-indexed, user IDs are 1-indexed in DB
-            embedding_1 = MAT_E[user_id_1 - 1]
+        for i in range(len(agent_ids)):
+            agent_id_1 = agent_ids[i]
+            # CAUTION: MAT_E is 0-indexed, agent IDs are 1-indexed in DB
+            embedding_1 = MAT_E[agent_id_1 - 1]
 
-            for j in range(i + 1, len(user_ids)):
-                user_id_2 = user_ids[j]
-                embedding_2 = MAT_E[user_id_2 - 1]
+            for j in range(i + 1, len(agent_ids)):
+                agent_id_2 = agent_ids[j]
+                embedding_2 = MAT_E[agent_id_2 - 1]
 
                 cosine_dist = CDistanceFunctions.cosine_distance_tensors(embedding_1, embedding_2)
                 euclidean_dist = CDistanceFunctions.euclidean_distance_tensors(embedding_1, embedding_2)
@@ -194,13 +194,13 @@ class CDistanceAnalysis_Baselines_L2:
 
         return cosine_distances, euclidean_distances
 
-    def compute_pairwise_distances_for_user_group_raw(self, user_ids, l2_normalize: bool = True):
+    def compute_pairwise_distances_for_agent_group_raw(self, agent_ids, l2_normalize: bool = True):
         """
-        Compute all pairwise cosine and euclidean distances within a group of users
+        Compute all pairwise cosine and euclidean distances within a group of agents
         using raw tool counts (sparse dictionary format).
 
         Args:
-            user_ids: List of user IDs.
+            agent_ids: List of agent IDs.
             l2_normalize: If True, L2-normalize each sparse vector before computing distances.
 
         Returns lists of cosine_distances and euclidean_distances.
@@ -211,15 +211,15 @@ class CDistanceAnalysis_Baselines_L2:
 
         # Pre-fetch and optionally L2-normalize vectors
         vectors = {}
-        for uid in user_ids:
+        for uid in agent_ids:
             vec = raw_counts.get(uid, {})
             vectors[uid] = self.l2_normalize_sparse(vec) if l2_normalize else vec
 
-        for i in range(len(user_ids)):
-            vec1 = vectors[user_ids[i]]
+        for i in range(len(agent_ids)):
+            vec1 = vectors[agent_ids[i]]
 
-            for j in range(i + 1, len(user_ids)):
-                vec2 = vectors[user_ids[j]]
+            for j in range(i + 1, len(agent_ids)):
+                vec2 = vectors[agent_ids[j]]
 
                 cosine_dist = self.cosine_distance_sparse(vec1, vec2)
                 euclidean_dist = self.euclidean_distance_sparse(vec1, vec2)
@@ -229,7 +229,7 @@ class CDistanceAnalysis_Baselines_L2:
 
         return cosine_distances, euclidean_distances
 
-    def _collect_distances_for_all_algorithms(self, user_ids, description,
+    def _collect_distances_for_all_algorithms(self, agent_ids, description,
                                                scale_alg_2_3: bool = True):
         """
         Helper function to collect pairwise distances for ALL algorithms (2, 3, 11, 21).
@@ -239,7 +239,7 @@ class CDistanceAnalysis_Baselines_L2:
         min-max scaled to [0, 1] per dimension before L2 normalization.
 
         Args:
-            user_ids: List of user IDs.
+            agent_ids: List of agent IDs.
             description: Description string for print output.
             scale_alg_2_3: If True, apply [0,1] min-max scaling to algorithms 2 and 3
                            before L2 normalization.
@@ -248,7 +248,7 @@ class CDistanceAnalysis_Baselines_L2:
             (raw_cosine, raw_euclidean, l2_cosine, l2_euclidean) dictionaries.
         """
         print(f"\n  Computing pairwise distances for {description}...")
-        print(f"  Users: {len(user_ids)}, Pairs per algorithm: {len(user_ids) * (len(user_ids) - 1) // 2}")
+        print(f"  Agents: {len(agent_ids)}, Pairs per algorithm: {len(agent_ids) * (len(agent_ids) - 1) // 2}")
         if scale_alg_2_3:
             print(f"  [0,1] scaling enabled for Algorithms 2 and 3")
 
@@ -272,12 +272,12 @@ class CDistanceAnalysis_Baselines_L2:
             key = f"Alg_{alg_id} {shape}"
 
             # Raw distances
-            cos_raw, euc_raw = self.compute_pairwise_distances_for_user_group(user_ids, MAT_E_raw)
+            cos_raw, euc_raw = self.compute_pairwise_distances_for_agent_group(agent_ids, MAT_E_raw)
             raw_cosine[key] = cos_raw
             raw_euclidean[key] = euc_raw
 
             # L2-normalized distances (with optional [0,1] pre-scaling for alg 2, 3)
-            cos_l2, euc_l2 = self.compute_pairwise_distances_for_user_group(user_ids, MAT_E_l2)
+            cos_l2, euc_l2 = self.compute_pairwise_distances_for_agent_group(agent_ids, MAT_E_l2)
             l2_cosine[key] = cos_l2
             l2_euclidean[key] = euc_l2
 
@@ -285,15 +285,15 @@ class CDistanceAnalysis_Baselines_L2:
         key_raw = f"Alg_{self.RAW_ALG_ID} {self._raw_tensor_shape}"
 
         # Raw sparse distances
-        cos_sparse_raw, euc_sparse_raw = self.compute_pairwise_distances_for_user_group_raw(
-            user_ids, l2_normalize=False
+        cos_sparse_raw, euc_sparse_raw = self.compute_pairwise_distances_for_agent_group_raw(
+            agent_ids, l2_normalize=False
         )
         raw_cosine[key_raw] = cos_sparse_raw
         raw_euclidean[key_raw] = euc_sparse_raw
 
         # L2-normalized sparse distances
-        cos_sparse_l2, euc_sparse_l2 = self.compute_pairwise_distances_for_user_group_raw(
-            user_ids, l2_normalize=True
+        cos_sparse_l2, euc_sparse_l2 = self.compute_pairwise_distances_for_agent_group_raw(
+            agent_ids, l2_normalize=True
         )
         l2_cosine[key_raw] = cos_sparse_l2
         l2_euclidean[key_raw] = euc_sparse_l2
@@ -367,10 +367,10 @@ class CDistanceAnalysis_Baselines_L2:
         Compute distance statistics for pairwise distances within Canary 1 group
         using L2-normalized embeddings, with raw min/max for reference.
         """
-        canary_users = self.get_canary_user_ids(1)
+        canary_agents = self.get_canary_agent_ids(1)
 
-        if len(canary_users) < 2:
-            print("Error: Not enough canary users in category 1.")
+        if len(canary_agents) < 2:
+            print("Error: Not enough canary agents in category 1.")
             return
 
         print("\n" + "=" * 80)
@@ -378,7 +378,7 @@ class CDistanceAnalysis_Baselines_L2:
         print("=" * 80)
 
         raw_cos, raw_euc, l2_cos, l2_euc = self._collect_distances_for_all_algorithms(
-            canary_users, "Canary 1 group", scale_alg_2_3=scale_alg_2_3
+            canary_agents, "Canary 1 group", scale_alg_2_3=scale_alg_2_3
         )
 
         self.print_stats(raw_cos, l2_cos, "COSINE DISTANCES - CANARY 1")
@@ -390,10 +390,10 @@ class CDistanceAnalysis_Baselines_L2:
         Compute distance statistics for pairwise distances within Canary 2 group
         using L2-normalized embeddings, with raw min/max for reference.
         """
-        canary_users = self.get_canary_user_ids(2)
+        canary_agents = self.get_canary_agent_ids(2)
 
-        if len(canary_users) < 2:
-            print("Error: Not enough canary users in category 2.")
+        if len(canary_agents) < 2:
+            print("Error: Not enough canary agents in category 2.")
             return
 
         print("\n" + "=" * 80)
@@ -401,34 +401,34 @@ class CDistanceAnalysis_Baselines_L2:
         print("=" * 80)
 
         raw_cos, raw_euc, l2_cos, l2_euc = self._collect_distances_for_all_algorithms(
-            canary_users, "Canary 2 group", scale_alg_2_3=scale_alg_2_3
+            canary_agents, "Canary 2 group", scale_alg_2_3=scale_alg_2_3
         )
 
         self.print_stats(raw_cos, l2_cos, "COSINE DISTANCES - CANARY 2")
         self.print_stats(raw_euc, l2_euc, "EUCLIDEAN DISTANCES - CANARY 2")
 
-    # ==================== ALL USERS ANALYSIS ====================
-    def compute_distances_all_users(self, scale_alg_2_3: bool = True):
+    # ==================== ALL AGENTS ANALYSIS ====================
+    def compute_distances_all_agents(self, scale_alg_2_3: bool = True):
         """
-        Compute distance statistics for pairwise distances across all users
+        Compute distance statistics for pairwise distances across all agents
         using L2-normalized embeddings, with raw min/max for reference.
         """
-        all_users = self.all_user_ids
+        all_agents = self.all_agent_ids
 
-        if len(all_users) < 2:
-            print("Error: Not enough users found in database.")
+        if len(all_agents) < 2:
+            print("Error: Not enough agents found in database.")
             return
 
         print("\n" + "=" * 80)
-        print("L2-NORMALIZED DISTANCES FOR ALL USERS (Algorithms 2, 3, 11, 21)")
+        print("L2-NORMALIZED DISTANCES FOR ALL AGENTS (Algorithms 2, 3, 11, 21)")
         print("=" * 80)
 
         raw_cos, raw_euc, l2_cos, l2_euc = self._collect_distances_for_all_algorithms(
-            all_users, "all users", scale_alg_2_3=scale_alg_2_3
+            all_agents, "all agents", scale_alg_2_3=scale_alg_2_3
         )
 
-        self.print_stats(raw_cos, l2_cos, "COSINE DISTANCES - ALL USERS")
-        self.print_stats(raw_euc, l2_euc, "EUCLIDEAN DISTANCES - ALL USERS")
+        self.print_stats(raw_cos, l2_cos, "COSINE DISTANCES - ALL AGENTS")
+        self.print_stats(raw_euc, l2_euc, "EUCLIDEAN DISTANCES - ALL AGENTS")
 
     # ==================== MANUAL TEST FUNCTIONS ====================
     @staticmethod
@@ -546,13 +546,13 @@ class CDistanceAnalysis_Baselines_L2:
         CDistanceAnalysis_Baselines_L2.compute_distances_for_manual_embeddings(embeddings)
 
     # ==================== MAIN ANALYSIS FUNCTION ====================
-    def print_all_baseline_analysis(self, include_all_users: bool = False,
+    def print_all_baseline_analysis(self, include_all_agents: bool = False,
                                      scale_alg_2_3: bool = True):
         """
         Print comprehensive distance analysis using L2-normalized embeddings:
         - Distances within Canary 1 group
         - Distances within Canary 2 group
-        - Distances for all users (controlled by include_all_users flag)
+        - Distances for all agents (controlled by include_all_agents flag)
 
         All embeddings are L2-normalized to unit length before computing distances.
         For algorithms 2 and 3, embeddings are optionally min-max scaled to [0, 1]
@@ -560,7 +560,7 @@ class CDistanceAnalysis_Baselines_L2:
         Distance values are reported as-is (no min-max scaling on distances).
 
         Args:
-            include_all_users: If True, compute distances for all users
+            include_all_agents: If True, compute distances for all agents
                               (can be very slow for large datasets)
             scale_alg_2_3: If True (default), apply [0,1] min-max scaling to
                           algorithms 2 and 3 embeddings before L2 normalization.
@@ -577,11 +577,11 @@ class CDistanceAnalysis_Baselines_L2:
         # ---- CANARY 2 ----
         self.compute_distances_canary_2(scale_alg_2_3=scale_alg_2_3)
 
-        # ---- ALL USERS (optional, slow) ----
-        if include_all_users:
-            self.compute_distances_all_users(scale_alg_2_3=scale_alg_2_3)
+        # ---- ALL AGENTS (optional, slow) ----
+        if include_all_agents:
+            self.compute_distances_all_agents(scale_alg_2_3=scale_alg_2_3)
         else:
-            print("\n  [Skipping all users analysis - set include_all_users=True to enable]")
+            print("\n  [Skipping all agents analysis - set include_all_agents=True to enable]")
 
 
 if __name__ == "__main__":
@@ -591,4 +591,4 @@ if __name__ == "__main__":
     # Uncomment below to run full analysis (requires database)
     print("\nRunning L2-Normalized Embedding Baseline Analysis (All 4 Algorithms)...")
     analysis = CDistanceAnalysis_Baselines_L2()
-    analysis.print_all_baseline_analysis(include_all_users=True)
+    analysis.print_all_baseline_analysis(include_all_agents=True)

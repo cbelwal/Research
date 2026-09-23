@@ -10,7 +10,7 @@ from Algorithms.TestData.CTestData_Simple import CTestData_Simple
 
 class TestAlgorithm3MatrixFactorization(unittest.TestCase):
     def test_generates_shared_embeddings_and_reconstruction_losses(self):
-        """Verify valid embeddings, losses, and expected user similarity."""
+        """Verify valid embeddings, losses, and expected agent similarity."""
         testData = CTestData_Simple()
 
         embeddings, losses = Alg_3_MatrixFactorization(
@@ -24,7 +24,7 @@ class TestAlgorithm3MatrixFactorization(unittest.TestCase):
         self.assertTrue(torch.isfinite(losses).all())
         self.assertTrue(torch.all(losses >= 0))
 
-        # Users 0 and 2 have identical tool usage, while user 1 is different.
+        # Agents 0 and 2 have identical tool usage, while agent 1 is different.
         self.assertTrue(torch.allclose(embeddings[0], embeddings[2]))
         self.assertFalse(torch.allclose(embeddings[0], embeddings[1]))
 

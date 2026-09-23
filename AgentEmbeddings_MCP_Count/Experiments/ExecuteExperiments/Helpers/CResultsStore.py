@@ -49,24 +49,24 @@ class CResultsStore:
         MAT_E = torch.load(filePath)
         return MAT_E
     
-    def store_training_loss(self, loss_for_each_user):
+    def store_training_loss(self, loss_for_each_agent):
         fileName = self.get_file_path(CConfig.BASE_TRAINING_LOSS_FILE_NAME)
         loss_file_path = os.path.join(self.get_folder_path(), fileName)
         with open(loss_file_path, 'wb') as f:
-            pickle.dump(loss_for_each_user, f)
+            pickle.dump(loss_for_each_agent, f)
         print(f"Training loss stored in file: {loss_file_path}")
 
     def load_training_loss(self):
         loss_file_path = self.get_file_path(CConfig.BASE_TRAINING_LOSS_FILE_NAME)
         with open(loss_file_path, 'rb') as f:
-            loss_for_each_user = pickle.load(f)
+            loss_for_each_agent = pickle.load(f)
         print(f"Training loss loaded from file: {loss_file_path}")
-        return loss_for_each_user
+        return loss_for_each_agent
 
 if __name__ == "__main__":
     algID = 3
     # ---------- Test storing and loading embeddings
-    MAT_E_Orig = torch.randn(10, 8)  # Example: 10 users, 8-dimensional embeddings
+    MAT_E_Orig = torch.randn(10, 8)  # Example: 10 agents, 8-dimensional embeddings
     store = CResultsStore()
     store.store_embeddings(MAT_E_Orig, algID=algID)
     print(f"Embeddings stored in file: {MAT_E_Orig[0]}")
@@ -81,13 +81,13 @@ if __name__ == "__main__":
     print("Embeddings matched successfully!")
     
     # ---------- Test storing and loading training loss
-    loss_for_each_user_orig = [0.1 * i for i in range(10)]  # Example losses for 10 users
-    store.store_training_loss(loss_for_each_user_orig, algID=algID)
-    print(f"Training loss stored in file: {loss_for_each_user_orig}")
+    loss_for_each_agent_orig = [0.1 * i for i in range(10)]  # Example losses for 10 agents
+    store.store_training_loss(loss_for_each_agent_orig, algID=algID)
+    print(f"Training loss stored in file: {loss_for_each_agent_orig}")
 
     # ---------- Load training loss back
-    loss_for_each_user = store.load_training_loss(loss_for_each_user_orig, algID=algID)
-    print(f"Loaded Training Loss: {loss_for_each_user}")  
+    loss_for_each_agent = store.load_training_loss(loss_for_each_agent_orig, algID=algID)
+    print(f"Loaded Training Loss: {loss_for_each_agent}")
     # Validation
-    assert loss_for_each_user_orig == loss_for_each_user, "Training losses do not match!"
+    assert loss_for_each_agent_orig == loss_for_each_agent, "Training losses do not match!"
     

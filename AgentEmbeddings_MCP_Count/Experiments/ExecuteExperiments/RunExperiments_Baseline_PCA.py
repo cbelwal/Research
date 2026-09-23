@@ -20,24 +20,24 @@ from Experiments.ExecuteExperiments.Helpers.CDistanceAnalysis import CDistanceAn
 
 PCA_ALG_ID = 11
 
-def run_pca_on_synthetic_data(All_C_hat_u:dict):     
-    testData = CDataMain(All_C_hat_u)
+def run_pca_on_synthetic_data(All_C_hat_a:dict):
+    testData = CDataMain(All_C_hat_a)
     embeddingDimensions = CConfig.EMBEDDING_DIMENSIONS
    
-    (MAT_E, loss_for_each_user) = Alg_Baseline_PCA(
+    (MAT_E, loss_for_each_agent) = Alg_Baseline_PCA(
                 embeddingDimensions=embeddingDimensions,
                 testData=testData)
     print(f"Generated Embeddings with PCA") 
-    return (MAT_E, loss_for_each_user)
+    return (MAT_E, loss_for_each_agent)
 
 
-def store_results_in_file(MAT_E, loss_for_each_user, algID:int):
+def store_results_in_file(MAT_E, loss_for_each_agent, algID:int):
     store = CResultsStore(algID)  
     # Store embeddings in file
     store.store_embeddings(MAT_E)
     print(f"Agent embeddings stored in file")
     # Store training loss in file
-    store.store_training_loss(loss_for_each_user)
+    store.store_training_loss(loss_for_each_agent)
     print(f"Training loss stored in file")
 
 
@@ -46,14 +46,14 @@ if __name__== "__main__":
     print(f"Starting baseline experiments on synthetic data at time {datetime.datetime.now()}...")
     print("Preparing raw data...")
     # Step 1: Data Preparation
-    All_C_hat_u = Algorithm_Data_Raw()
+    All_C_hat_a = Algorithm_Data_Raw()
 
     # Compute PCA embeddings
     print(f"Computing embeddings for PCA...")
-    (MAT_E, loss_for_each_user) = \
-        run_pca_on_synthetic_data(All_C_hat_u)
+    (MAT_E, loss_for_each_agent) = \
+        run_pca_on_synthetic_data(All_C_hat_a)
     print(f"Storing embeddings for PCA...")
-    store_results_in_file(MAT_E, loss_for_each_user,PCA_ALG_ID)
+    store_results_in_file(MAT_E, loss_for_each_agent,PCA_ALG_ID)
     print(f"Experiments completed at time {datetime.datetime.now()}.")
 
        

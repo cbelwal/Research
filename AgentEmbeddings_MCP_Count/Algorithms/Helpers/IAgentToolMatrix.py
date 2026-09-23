@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class IUserToolMatrix(ABC):
+class IAgentToolMatrix(ABC):
     # priceHistoty is a dictionary with stock tickers as keys and list of prices as values
     
     @property
@@ -8,11 +8,11 @@ class IUserToolMatrix(ABC):
         pass
 
     @property
-    def NumberOfUsers(self)->int:
+    def NumberOfAgents(self)->int:
         pass
 
     @abstractmethod
-    def get_MAT_u_tau(self, pricesHistory:dict)->str:
+    def get_MAT_a_tau(self, pricesHistory:dict)->str:
         pass
 
   

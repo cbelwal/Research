@@ -32,19 +32,19 @@ class CPlotSyntheticData:
         return
 
         
-    def plot_number_of_sessions_per_user(self):
-        all_user_sessions = []
-        user_ids = self.dbManager.get_all_user_ids()
-        for user_id in user_ids:
-            userSession = self.dbManager.get_sessions_for_user(user_id)
-            all_user_sessions.append(len(userSession))
+    def plot_number_of_sessions_per_agent(self):
+        all_agent_sessions = []
+        agent_ids = self.dbManager.get_all_agent_ids()
+        for agent_id in agent_ids:
+            agentSession = self.dbManager.get_sessions_for_agent(agent_id)
+            all_agent_sessions.append(len(agentSession))
         
-        # There will be lot of users so plot with histogram
-        CPlotCommon.plot_histogram_y(all_user_sessions,
+        # There will be lot of agents so plot with histogram
+        CPlotCommon.plot_histogram_y(all_agent_sessions,
                                     bins=30,                                     
-                                    title="Distribution: Number of Sessions / User",
+                                    title="Distribution: Number of Sessions / Agent",
                                     xlabel="Number of Sessions",
-                                    ylabel="User Count",
+                                    ylabel="Agent Count",
                                     saveFile=True)
 
     
@@ -55,7 +55,7 @@ class CPlotSyntheticData:
             tool_call_count = self.dbManager.get_tool_call_count(tool_id)
             if tool_call_count > 0:
                 all_tool_call_count.append(tool_call_count)
-        # There will be lot of users so plot with histogram
+        # There will be lot of agents so plot with histogram
         CPlotCommon.plot_histogram_y(all_tool_call_count,
                                     bins=30,                                     
                                     title="Distribution: Number of Calls / Tool",
@@ -65,7 +65,7 @@ class CPlotSyntheticData:
     
     def generate_all_plots(self):
         self.plot_tools_in_each_mcp()
-        self.plot_number_of_sessions_per_user()
+        self.plot_number_of_sessions_per_agent()
         self.plot_calls_for_each_tool()
 
 if __name__== "__main__":

@@ -20,11 +20,11 @@ class CPCAAnalysis:
     def __init__(self, MAT_E):
         self.MAT_E = MAT_E
         self.dbManager = CDatabaseManager()
-        self.canary_users = self.dbManager.get_canary_users()
+        self.canary_agents = self.dbManager.get_canary_agents()
     
-    def generate_pca_for_canary_users(self, canary_id=1, reduce_to_dim:int=2):
-        canary_user_indices = [user_id - 1 for user_id in self.canary_users[canary_id]] # Convert to 0-indexed
-        canary_embeddings = self.MAT_E[canary_user_indices]
+    def generate_pca_for_canary_agents(self, canary_id=1, reduce_to_dim:int=2):
+        canary_agent_indices = [agent_id - 1 for agent_id in self.canary_agents[canary_id]] # Convert to 0-indexed
+        canary_embeddings = self.MAT_E[canary_agent_indices]
         pca_embeddings = self.generate_pca_for_given_values(canary_embeddings, reduce_to_dim=reduce_to_dim)
         return pca_embeddings
 
@@ -43,14 +43,14 @@ class CPCAAnalysis:
 
 # For testing purposes
 if __name__ == "__main__":
-    MAT_E = torch.zeros(2, 3) # 2 users x 3 tools
+    MAT_E = torch.zeros(2, 3) # 2 agents x 3 tools
     # ------ Manually Assign Values
-    MAT_E[0][0] = 1 # user 0, tool 0
-    MAT_E[0][1] = 2 # user 0, tool 1
-    MAT_E[0][2] = 2 # user 0, tool 2
-    MAT_E[1][0] = 3 # user 1, tool 0
-    MAT_E[1][1] = 1 # user 1, tool 1
-    MAT_E[1][2] = 0 # user 1, tool 2
+    MAT_E[0][0] = 1 # agent 0, tool 0
+    MAT_E[0][1] = 2 # agent 0, tool 1
+    MAT_E[0][2] = 2 # agent 0, tool 2
+    MAT_E[1][0] = 3 # agent 1, tool 0
+    MAT_E[1][1] = 1 # agent 1, tool 1
+    MAT_E[1][2] = 0 # agent 1, tool 2
     
     pcaAnalyzer = CPCAAnalysis(MAT_E)
     pca_embeddings = pcaAnalyzer.generate_pca_for_all()   

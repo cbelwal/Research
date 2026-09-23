@@ -27,7 +27,7 @@ class CClusteringAnalysis_Baselines_All:
 
     def __init__(self):
         self.dbManager = CDatabaseManager()
-        self.all_user_ids = self.dbManager.get_all_user_ids()
+        self.all_agent_ids = self.dbManager.get_all_agent_ids()
 
         # Load embeddings for all algorithms (including raw tool counts)
         print("Loading embeddings for algorithms...")

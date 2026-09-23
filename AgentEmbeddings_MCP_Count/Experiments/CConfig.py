@@ -4,19 +4,22 @@ from dataclasses import dataclass
 # and size accordingly
 @dataclass(frozen=True)
 class CConfig:
-    MAX_USERS = 10000 # Change the file names accordingly
-    DB_FILE_NAME = "mcp_interactions_u10000.db"
-    BASE_EMBEDDINGS_FILE_NAME = "agent_embeddings_u10000.pt"
-    BASE_TRAINING_LOSS_FILE_NAME = "training_loss_u10000.pkl" # Pickle file
-    MAX_MCP_SERVERS = 100
-    MAX_TOOLS_PER_MCP_SERVER = 50
+    MAX_AGENTS = 100000 # Change the file names accordingly
+    DB_FILE_NAME = "mcp_interactions_a100000.db"
+    BASE_EMBEDDINGS_FILE_NAME = "agent_embeddings_a100000.pt"
+    BASE_TRAINING_LOSS_FILE_NAME = "training_loss_a100000.pkl" # Pickle file
+    MAX_MCP_SERVERS = 200
+    MAX_TOOLS_PER_MCP_SERVER = 30
     MIN_TOOLS_PER_MCP_SERVER = 1
-    SESSIONS_PER_USER_MEAN = 100
-    SESSIONS_PER_USER_STD = 60 
+    SESSIONS_PER_AGENT_MEAN = 100
+    SESSIONS_PER_AGENT_STD = 200
+    MAX_SESSIONS_PER_AGENT = 500
     SESSIONS_LENGTH_MEAN = 20
     SESSIONS_LENGTH_STD = 10
+    MIN_TOOL_CALLS_PER_SEQUENCE = 0
+    MAX_TOOL_CALLS_PER_SEQUENCE = 5
     EMBEDDING_DIMENSIONS = 8 # Embedding vector dimensions
     PROB_OF_TOOL_FROM_SAME_MCP = 0.33
-    PERCENTAGE_USERS_CANARY_1 = 5
-    PERCENTAGE_USERS_CANARY_2 = 5
+    PERCENTAGE_AGENTS_CANARY_1 = 5
+    PERCENTAGE_AGENTS_CANARY_2 = 5
     EMBEDDINGS_FILE_NAME = "agent_embeddings.pt"

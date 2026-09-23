@@ -13,70 +13,70 @@ topRootPath = os.path.dirname(
 sys.path.append(topRootPath)
 #----------------------------------------------
 
-from Algorithms.Helpers.IUserToolMatrix import IUserToolMatrix  
+from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 from Algorithms.Alg_2_AutoEncoder import Alg_2_AutoEncoder
 from Algorithms.Alg_3_MatrixFactorization import Alg_3_MatrixFactorization
 from Algorithms.Alg_Baseline_PCA import Alg_Baseline_PCA
 from Experiments.ExecuteExperiments.Helpers.CDistanceFunctions import CDistanceFunctions
 
-class CTestData_Simple(IUserToolMatrix):
+class CTestData_Simple(IAgentToolMatrix):
     def __init__(self):
-        self.NumberOfUsers = 4
+        self.NumberOfAgents = 4
         self.NumberOfTools = 4
 
-    def NumberOfUsers(self):
-        return self.NumberOfUsers
+    def NumberOfAgents(self):
+        return self.NumberOfAgents
     
     def NumberOfTools(self):
         return self.NumberOfTools
 
     """
-    Returns the MAT_u_tau matrix as a tensor
-    Shape: (totalNumberOfUsers, totalNumberOfTools)
+    Returns the MAT_a_tau matrix as a tensor
+    Shape: (totalNumberOfAgents, totalNumberOfTools)
     """
-    def get_MAT_u_tau(self):
-        MAT_tau_u = torch.zeros(self.NumberOfUsers, self.NumberOfTools)
+    def get_MAT_a_tau(self):
+        MAT_tau_a = torch.zeros(self.NumberOfAgents, self.NumberOfTools)
         # ------ Manually Assign Values
-        MAT_tau_u[0][0] = 1 # user 0, tool 0
-        MAT_tau_u[0][1] = 2 # user 0, tool 1
-        MAT_tau_u[0][2] = 2 # user 0, tool 2
-        MAT_tau_u[0][3] = 0 # user 0, tool 3
-        MAT_tau_u[1][0] = 3 # user 1, tool 0
-        MAT_tau_u[1][1] = 1 # user 1, tool 1
-        MAT_tau_u[1][2] = 0 # user 1, tool 2
-        MAT_tau_u[1][3] = 2 # user 1, tool 3
-        # Canary #1: user 2 has same values as user 0
-        MAT_tau_u[2][0] = 1 # user 2, tool 0
-        MAT_tau_u[2][1] = 2 # user 2, tool 1
-        MAT_tau_u[2][2] = 2 # user 2, tool 2
-        MAT_tau_u[2][3] = 0 # user 2, tool 3
-        # Canary #2: user 3 has close values as user 1
-        MAT_tau_u[3][0] = 3 # user 1, tool 0
-        MAT_tau_u[3][1] = 1 # user 1, tool 1
-        MAT_tau_u[3][2] = 1 # user 1, tool 2 -> Only difference
-        MAT_tau_u[3][3] = 2 # user 1, tool 3
+        MAT_tau_a[0][0] = 1 # agent 0, tool 0
+        MAT_tau_a[0][1] = 2 # agent 0, tool 1
+        MAT_tau_a[0][2] = 2 # agent 0, tool 2
+        MAT_tau_a[0][3] = 0 # agent 0, tool 3
+        MAT_tau_a[1][0] = 3 # agent 1, tool 0
+        MAT_tau_a[1][1] = 1 # agent 1, tool 1
+        MAT_tau_a[1][2] = 0 # agent 1, tool 2
+        MAT_tau_a[1][3] = 2 # agent 1, tool 3
+        # Canary #1: agent 2 has same values as agent 0
+        MAT_tau_a[2][0] = 1 # agent 2, tool 0
+        MAT_tau_a[2][1] = 2 # agent 2, tool 1
+        MAT_tau_a[2][2] = 2 # agent 2, tool 2
+        MAT_tau_a[2][3] = 0 # agent 2, tool 3
+        # Canary #2: agent 3 has close values as agent 1
+        MAT_tau_a[3][0] = 3 # agent 1, tool 0
+        MAT_tau_a[3][1] = 1 # agent 1, tool 1
+        MAT_tau_a[3][2] = 1 # agent 1, tool 2 -> Only difference
+        MAT_tau_a[3][3] = 2 # agent 1, tool 3
         #------------------------
         # Normalize the matrix values between 0 and 1 for each row
-        for userId in range(self.NumberOfUsers):
-            row_sum = torch.sum(MAT_tau_u[userId])
+        for agentId in range(self.NumberOfAgents):
+            row_sum = torch.sum(MAT_tau_a[agentId])
             if row_sum > 0:
-                MAT_tau_u[userId] = MAT_tau_u[userId] / row_sum
+                MAT_tau_a[agentId] = MAT_tau_a[agentId] / row_sum
         
-        return MAT_tau_u
+        return MAT_tau_a
     
 # For local testing only
 if __name__== "__main__":
     testData = CTestData_Simple()
-    (MAT_E,loss_for_user) = Alg_3_MatrixFactorization(embeddingDimensions=2,
+    (MAT_E,loss_for_agent) = Alg_3_MatrixFactorization(embeddingDimensions=2,
                                                      testData=testData)
-    #(MAT_E,loss_for_user) = Alg_Baseline_PCA(embeddingDimensions=2,
+    #(MAT_E,loss_for_agent) = Alg_Baseline_PCA(embeddingDimensions=2,
     #                                           testData=testData)
     '''
     In PyTorch, the .item() method is used to extract the value 
     from a single-element tensor and convert it into a standard 
     Python number (e.g., int or float). 
     '''
-    print("Best losses for each user:", loss_for_user.tolist())
+    print("Best losses for each agent:", loss_for_agent.tolist())
     
     CDistanceFunctions.print_distance_measures_tensors(MAT_E[0],MAT_E[2],"Canary 1 - 0 and 2")
     CDistanceFunctions.print_distance_measures_tensors(MAT_E[0],MAT_E[3],"Canary 2 - 1 and 3")

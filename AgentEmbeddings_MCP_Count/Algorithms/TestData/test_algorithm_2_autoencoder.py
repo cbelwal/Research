@@ -27,7 +27,7 @@ class TestAlgorithm2Autoencoder(unittest.TestCase):
         self.assertLess(losses.mean().item(), 1e-4)
         self.assertLess(losses.max().item(), 5e-4)
 
-        # Users 0 and 2 have identical tool usage, while user 1 is different.
+        # Agents 0 and 2 have identical tool usage, while agent 1 is different.
         self.assertTrue(torch.equal(embeddings[0], embeddings[2]))
         self.assertFalse(torch.equal(embeddings[0], embeddings[1]))
 

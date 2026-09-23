@@ -1,14 +1,14 @@
 class CCache:
     def __init__(self):
         self.mcp_tools = {}
-        self.user_ids = set()
+        self.agent_ids = set()
         pass
 
-    def add_user(self, user_id:int):
-        self.user_ids.add(user_id)
+    def add_agent(self, agent_id:int):
+        self.agent_ids.add(agent_id)
     
-    def get_all_user_ids(self):
-        return list(self.user_ids)
+    def get_all_agent_ids(self):
+        return list(self.agent_ids)
 
     def add_mcp_tool(self, mcp_server_id:int, mcp_tool_id:int, tool_id:int):
         if mcp_server_id not in self.mcp_tools:

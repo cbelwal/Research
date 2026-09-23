@@ -1,10 +1,10 @@
 """
-Shared autoencoder used to compress user-tool interaction vectors.
+Shared autoencoder used to compress agent-tool interaction vectors.
 """
 import torch.nn as nn
 
 
-class CUserToolAutoencoder(nn.Module):
+class CAgentToolAutoencoder(nn.Module):
     def __init__(self, numberOfTools: int, embeddingDimensions: int):
         super().__init__()
         hiddenDimensions = min(

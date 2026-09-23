@@ -15,41 +15,41 @@ topRootPath = os.path.dirname(
 sys.path.append(topRootPath)
 #----------------------------------------------
 from Algorithms.Helpers.CPolynomialFitReduction import CPolynomialFitReduction
-from Algorithms.Helpers.IUserToolMatrix import IUserToolMatrix  
+from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 
 SCALING_FACTOR = 1.0
 
 def Alg_5_PolynomialFit(embeddingDimensions:int=8,
-                                       testData: IUserToolMatrix = None):
-    MAT_u_tau = testData.get_MAT_u_tau()
+                                       testData: IAgentToolMatrix = None):
+    MAT_a_tau = testData.get_MAT_a_tau()
 
     # Multiply all values by a scaling factor to improve training stability
-    MAT_u_tau = MAT_u_tau * SCALING_FACTOR
+    MAT_a_tau = MAT_a_tau * SCALING_FACTOR
 
     print("Starting Model Training")
     
-    MAT_E = torch.zeros(testData.NumberOfUsers, embeddingDimensions)
-    loss_for_each_user = torch.zeros(testData.NumberOfUsers)
-    # Train the model for each user
-    for i in tqdm(range(0,testData.NumberOfUsers)):          
+    MAT_E = torch.zeros(testData.NumberOfAgents, embeddingDimensions)
+    loss_for_each_agent = torch.zeros(testData.NumberOfAgents)
+    # Train the model for each agent
+    for i in tqdm(range(0,testData.NumberOfAgents)):
         # Model will take the embedding dimenssions as input and return a single output containing value from  tool call.
         model = CPolynomialFitReduction(embeddingDimensions)
         
-        # Get the ith row of MAT_tau_u
+        # Get the ith row of MAT_tau_a
         # .view: reshape the tensor to be of shape (1, totalNumberOfTools)
         # the elements will be the same, just the shape will be different
-        tmpMAT_u_tau = MAT_u_tau[i].view(1, testData.NumberOfTools)
+        tmpMAT_a_tau = MAT_a_tau[i].view(1, testData.NumberOfTools)
         
-        # Convert tmpMAT_u_tau to numpy for processing in CPolynomialFitReduction
-        num_py_array = tmpMAT_u_tau.numpy()
+        # Convert tmpMAT_a_tau to numpy for processing in CPolynomialFitReduction
+        num_py_array = tmpMAT_a_tau.numpy()
         
         (np_array, loss) = model.get_reduced_dimension_polynomial_fit(num_py_array)
         # Convert back to tensor
         MAT_E[i] = torch.tensor(np_array, dtype=torch.float32)
-        loss_for_each_user[i] = torch.tensor(loss, dtype=torch.float32)
+        loss_for_each_agent[i] = torch.tensor(loss, dtype=torch.float32)
         #print("Coeffs:",MAT_E[i])
-        #break # TEMP: Only 1 user for now
+        #break # TEMP: Only 1 agent for now
                     
-    return (MAT_E,loss_for_each_user)
+    return (MAT_E,loss_for_each_agent)
 
    

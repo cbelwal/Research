@@ -36,8 +36,8 @@ class CDatabaseManager:
     '''
     MCPServers: id, no_of_tools
     Tools: id, mcp_id
-    Users: id 
-    Sessions: id, user_id, session_depth
+    Agents: id
+    Sessions: id, agent_id, session_depth
     SessionDetails: id, session_id, tool_id,  sequence_number
     '''
     def create_tables(self):
@@ -58,8 +58,8 @@ class CDatabaseManager:
         );
         """
         
-        create_users_table = """
-        CREATE TABLE IF NOT EXISTS users (
+        create_agents_table = """
+        CREATE TABLE IF NOT EXISTS agents (
             id INTEGER PRIMARY KEY
         );
         """
@@ -67,9 +67,9 @@ class CDatabaseManager:
         create_sessions_table = """
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY,
-            user_id INTEGER,
+            agent_id INTEGER,
             session_depth INTEGER,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (agent_id) REFERENCES agents (id)
         );
         """
 
@@ -79,25 +79,25 @@ class CDatabaseManager:
             session_id INTEGER,
             tool_id INTEGER,
             sequence_number INTEGER,
-            FOREIGN KEY (session_id) REFERENCES users (id)
+            FOREIGN KEY (session_id) REFERENCES sessions (id),
             FOREIGN KEY (tool_id) REFERENCES mcp_tools (id)
         );
         """
 
-        create_canary_users = """
-        CREATE TABLE IF NOT EXISTS canary_users (
+        create_canary_agents = """
+        CREATE TABLE IF NOT EXISTS canary_agents (
             id INTEGER PRIMARY KEY,
-            user_id INTEGER,
+            agent_id INTEGER,
             canary_category INTEGER,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (agent_id) REFERENCES agents (id)
         );
         """
         
         self.sqlLite.execute_query(create_servers_table)
         self.sqlLite.execute_query(create_tools_table)
-        self.sqlLite.execute_query(create_users_table)
+        self.sqlLite.execute_query(create_agents_table)
         self.sqlLite.execute_query(create_sessions_table)
-        self.sqlLite.execute_query(create_canary_users)
+        self.sqlLite.execute_query(create_canary_agents)
         self.sqlLite.execute_query(create_session_interactions_table)
 
     def last_insert_rowid(self):
@@ -112,9 +112,9 @@ class CDatabaseManager:
 
     #------------- Read specific data methods ----------------
     # Returns a dictionary with session_id as key and session_length as value
-    def get_all_session_lengths(self, user_id):
-        query = "SELECT id,session_depth FROM sessions WHERE user_id = ?;"
-        result = self.execute_read_query(query, (user_id,))
+    def get_all_session_lengths(self, agent_id):
+        query = "SELECT id,session_depth FROM sessions WHERE agent_id = ?;"
+        result = self.execute_read_query(query, (agent_id,))
         allSessionLengths = {}
         for row in result:
             session_id = row[0]
@@ -122,21 +122,22 @@ class CDatabaseManager:
             allSessionLengths[session_id] = session_length
         return allSessionLengths
 
-    # Returns a dictionaty with session_id as key and tool_id as value
-    def get_session_interactions(self, user_id):
+    # Returns a dictionary with session_id as key and ordered
+    # (sequence_number, tool_id) tuples as values.
+    def get_session_interactions(self, agent_id):
         query = """
-        SELECT si.session_id, si.tool_id 
+        SELECT si.session_id, si.sequence_number, si.tool_id
         FROM session_interactions si
         JOIN sessions s ON si.session_id = s.id
-        WHERE s.user_id = ?;
+        WHERE s.agent_id = ?
+        ORDER BY si.session_id, si.sequence_number, si.id;
         """
         allInteractions = {}
-        result = self.execute_read_query(query, (user_id,))
-        interactions = [(row[0], row[1]) for row in result]
-        for (session_id, tool_id) in interactions:
+        result = self.execute_read_query(query, (agent_id,))
+        for session_id, sequence_number, tool_id in result:
             if session_id not in allInteractions:
                 allInteractions[session_id] = []
-            allInteractions[session_id].append(tool_id)
+            allInteractions[session_id].append((sequence_number, tool_id))
         return allInteractions
 
 
@@ -147,15 +148,15 @@ class CDatabaseManager:
             return result[0][0]
         return 0
     
-    def get_all_user_ids(self):
-        query = "SELECT id FROM users;"
+    def get_all_agent_ids(self):
+        query = "SELECT id FROM agents;"
         result = self.execute_read_query(query)
-        user_ids = [row[0] for row in result]
-        return user_ids
+        agent_ids = [row[0] for row in result]
+        return agent_ids
     
-    def get_sessions_for_user(self, user_id):
-        query = "SELECT id FROM sessions WHERE user_id = ?;"
-        result = self.execute_read_query(query, (user_id,))
+    def get_sessions_for_agent(self, agent_id):
+        query = "SELECT id FROM sessions WHERE agent_id = ?;"
+        result = self.execute_read_query(query, (agent_id,))
         session_ids = [row[0] for row in result]
         return session_ids
     
@@ -204,24 +205,24 @@ class CDatabaseManager:
         server_ids = [row[0] for row in result]
         return server_ids
     
-    def get_canary_users(self):
-        query = "SELECT user_id, canary_category FROM canary_users;"
+    def get_canary_agents(self):
+        query = "SELECT agent_id, canary_category FROM canary_agents;"
         result = self.execute_read_query(query)
-        canary_users = {}
+        canary_agents = {}
         for row in result:
-            user_id = row[0]
+            agent_id = row[0]
             canary_category = row[1]
-            if canary_category not in canary_users:
-                canary_users[canary_category] = []
-            canary_users[canary_category].append(user_id)
-        return canary_users
+            if canary_category not in canary_agents:
+                canary_agents[canary_category] = []
+            canary_agents[canary_category].append(agent_id)
+        return canary_agents
 
     #------------- END: Read specific data methods ----------------
     #------------- Delete specific data methods ----------------
-    def delete_all_session_data_for_user(self, user_id):
-        # First get all session ids for the user
-        get_sessions_query = "SELECT id FROM sessions WHERE user_id = ?;"
-        session_ids = self.execute_read_query(get_sessions_query, (user_id,))
+    def delete_all_session_data_for_agent(self, agent_id):
+        # First get all session ids for the agent
+        get_sessions_query = "SELECT id FROM sessions WHERE agent_id = ?;"
+        session_ids = self.execute_read_query(get_sessions_query, (agent_id,))
         session_ids = [row[0] for row in session_ids]
         
         # Delete session interactions for these sessions
@@ -229,9 +230,9 @@ class CDatabaseManager:
         for session_id in session_ids:
             self.execute_query(delete_interactions_query, (session_id,))
         
-        # Delete sessions for the user
-        delete_sessions_query = "DELETE FROM sessions WHERE user_id = ?;"
-        self.execute_query(delete_sessions_query, (user_id,))
+        # Delete sessions for the agent
+        delete_sessions_query = "DELETE FROM sessions WHERE agent_id = ?;"
+        self.execute_query(delete_sessions_query, (agent_id,))
     
     #------------- END: Delete specific data methods ----------------
 
@@ -244,10 +245,10 @@ class CDatabaseManager:
         self.delete_data_from_tables([
             'session_interactions',
             'sessions',
-            'users',
+            'agents',
             'mcp_tools',
             'mcp_servers',
-            'canary_users'
+            'canary_agents'
         ])
 
 
