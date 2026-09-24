@@ -51,11 +51,16 @@ class CDatabaseManager:
 
         create_tools_table = """
         CREATE TABLE IF NOT EXISTS mcp_tools (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             mcp_server_id INTEGER,
             mcp_tool_id INTEGER,
             FOREIGN KEY (mcp_server_id) REFERENCES mcp_servers (id)
         );
+        """
+
+        ensure_no_tool_call_sentinel = """
+        INSERT OR IGNORE INTO mcp_tools (id, mcp_server_id, mcp_tool_id)
+        VALUES (?, NULL, NULL);
         """
         
         create_agents_table = """
@@ -95,6 +100,10 @@ class CDatabaseManager:
         
         self.sqlLite.execute_query(create_servers_table)
         self.sqlLite.execute_query(create_tools_table)
+        self.sqlLite.execute_query(
+            ensure_no_tool_call_sentinel,
+            (CConfig.NO_TOOL_CALL_ID,),
+        )
         self.sqlLite.execute_query(create_agents_table)
         self.sqlLite.execute_query(create_sessions_table)
         self.sqlLite.execute_query(create_canary_agents)
@@ -161,14 +170,25 @@ class CDatabaseManager:
         return session_ids
     
     def get_tools_for_session(self, session_id):
-        query = "SELECT tool_id FROM session_interactions WHERE session_id = ?;"
-        result = self.execute_read_query(query, (session_id,))
+        query = """
+        SELECT tool_id
+        FROM session_interactions
+        WHERE session_id = ? AND tool_id != ?;
+        """
+        result = self.execute_read_query(
+            query,
+            (session_id, CConfig.NO_TOOL_CALL_ID),
+        )
         tool_ids = [row[0] for row in result]
         return tool_ids
     
     def get_all_tools_and_sessions(self):
-        query = "SELECT session_id, tool_id FROM session_interactions;"
-        result = self.execute_read_query(query, ())
+        query = """
+        SELECT session_id, tool_id
+        FROM session_interactions
+        WHERE tool_id != ?;
+        """
+        result = self.execute_read_query(query, (CConfig.NO_TOOL_CALL_ID,))
         # return as dictionary with session_id as key and list of tool_ids as value    
         all_sessions_data = {}
         for row in result: # couple of million+ rows
@@ -180,21 +200,28 @@ class CDatabaseManager:
         return all_sessions_data
     
     def get_number_of_tools(self):
-        query = "SELECT COUNT(*) FROM mcp_tools;"
-        result = self.execute_read_query(query)
+        query = "SELECT COUNT(*) FROM mcp_tools WHERE id != ?;"
+        result = self.execute_read_query(query, (CConfig.NO_TOOL_CALL_ID,))
         if result:
             return result[0][0]
         return 0
     
     def get_all_tool_ids(self):
-        query = "SELECT id FROM mcp_tools;"
-        result = self.execute_read_query(query)
+        query = "SELECT id FROM mcp_tools WHERE id != ?;"
+        result = self.execute_read_query(query, (CConfig.NO_TOOL_CALL_ID,))
         tool_ids = [row[0] for row in result]
         return tool_ids
     
     def get_tool_call_count(self, tool_id):
-        query = "SELECT COUNT(*) FROM session_interactions WHERE tool_id = ?;"
-        result = self.execute_read_query(query, (tool_id,))
+        query = """
+        SELECT COUNT(*)
+        FROM session_interactions
+        WHERE tool_id = ? AND tool_id != ?;
+        """
+        result = self.execute_read_query(
+            query,
+            (tool_id, CConfig.NO_TOOL_CALL_ID),
+        )
         if result:
             return result[0][0]
         return 0

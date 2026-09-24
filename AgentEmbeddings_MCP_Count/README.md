@@ -224,13 +224,14 @@ class CConfig:
     MAX_TOOLS_PER_MCP_SERVER = 30  # Max tools per server (min = 1)
     MIN_TOOLS_PER_MCP_SERVER = 1
 
-    SESSIONS_PER_AGENT_MEAN = 100   # Average sessions per agent (normal dist)
-    SESSIONS_PER_AGENT_STD  = 200
-    MAX_SESSIONS_PER_AGENT = 500   # Hard upper bound
+    SESSIONS_PER_AGENT_MEAN = 500   # Average sessions per agent (normal dist)
+    SESSIONS_PER_AGENT_STD  = 400
+    MAX_SESSIONS_PER_AGENT = 1000  # Hard upper bound
     SESSIONS_LENGTH_MEAN = 20      # Average sequence positions per session
     SESSIONS_LENGTH_STD  = 10
     MIN_TOOL_CALLS_PER_SEQUENCE = 0
     MAX_TOOL_CALLS_PER_SEQUENCE = 5
+    NO_TOOL_CALL_ID = -1           # Sentinel interaction for a zero-call sequence
 
     EMBEDDING_DIMENSIONS = 8       # Size of the output embedding vector
 
@@ -275,16 +276,22 @@ session_depth        tool_id (FK)           canary_category
 
 1. **MCP Servers & Tools:** Creates 200 MCP servers, each with 1–30 tools randomly.
 2. **Agents:** Creates 100,000 agents.
-3. **Sessions:** For each agent, draws the number of sessions from `Normal(mean=100, std=200)`, clamped to the inclusive range 1–500. Each session's depth is the number of sequence positions, drawn from `Normal(mean=20, std=10)` with a minimum of 1.
+3. **Sessions:** For each agent, draws the number of sessions from `Normal(mean=500, std=400)`, clamped to the inclusive range 1–1000. Each session's depth is the number of sequence positions, drawn from `Normal(mean=20, std=10)` with a minimum of 1.
 4. **Session Interactions:** For each session:
    - Draw 0–5 tool calls independently for each sequence position.
    - Store every call as its own row. Calls in the same position share a `sequence_number`.
+   - When a position has zero calls, store exactly one row with `tool_id = -1`. The matching nullable `mcp_tools` sentinel row preserves the foreign-key relationship.
    - For each tool call:
      - With probability 0.33 → pick a tool from the *same* MCP server as the previous tool (mimicking realistic tool clustering)
      - With probability 0.67 → pick any tool at random
 5. **Canary Agents:** A key validation mechanism:
    - **Canary Category 1** (5% of agents): Exact copies of a reference agent. These agents have identical session data. Any good embedding algorithm must produce nearly identical embeddings for them.
    - **Canary Category 2** (5% of agents): Near-copies of the reference agent with session length reduced by 1. These should produce *similar but not identical* embeddings.
+
+The `-1` sentinel records that a sequence position existed but made no tool
+call. Tool counts, tool lists, plots, and embedding/data-preparation queries
+exclude it, while canary copies retain it and the original shared
+`sequence_number` values.
 
 ### Regenerating the Database
 
@@ -657,6 +664,8 @@ matrix factorization, respectively.
 ### ID Offset Convention
 
 SQL databases use 1-indexed IDs (agents, tools start at 1). PyTorch tensors use 0-indexed arrays. Throughout the code, the conversion `tensor_index = db_id - 1` is applied wherever database IDs are used to index tensors.
+The reserved `mcp_tools.id = -1` row is not a real tool and is excluded before
+matrix construction.
 
 ### Database Performance Tuning
 
