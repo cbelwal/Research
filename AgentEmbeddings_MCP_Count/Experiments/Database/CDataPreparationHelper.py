@@ -24,7 +24,7 @@ class CDataPreparationHelper:
 
     # Get tools for a session from cache for faster reads 
    def get_tools_for_session(self, sessionId):
-       return self.all_sessions_data_cache[sessionId]
+        return self.all_sessions_data_cache.get(sessionId, [])
        #return self.dbManager.get_tools_for_session(sessionId)
    
     

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 # and size accordingly
 @dataclass(frozen=True)
 class CConfig:
+    NO_TOOL_CALL_ID = -1
     MAX_AGENTS = 100000 # Change the file names accordingly
     DB_FILE_NAME = "mcp_interactions_a100000.db"
     BASE_EMBEDDINGS_FILE_NAME = "agent_embeddings_a100000.pt"
@@ -11,9 +12,9 @@ class CConfig:
     MAX_MCP_SERVERS = 200
     MAX_TOOLS_PER_MCP_SERVER = 30
     MIN_TOOLS_PER_MCP_SERVER = 1
-    SESSIONS_PER_AGENT_MEAN = 100
-    SESSIONS_PER_AGENT_STD = 200
-    MAX_SESSIONS_PER_AGENT = 500
+    SESSIONS_PER_AGENT_MEAN = 500
+    SESSIONS_PER_AGENT_STD = 400
+    MAX_SESSIONS_PER_AGENT = 1000
     SESSIONS_LENGTH_MEAN = 20
     SESSIONS_LENGTH_STD = 10
     MIN_TOOL_CALLS_PER_SEQUENCE = 0

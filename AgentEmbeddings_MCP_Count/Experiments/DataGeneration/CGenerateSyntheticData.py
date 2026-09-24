@@ -132,6 +132,13 @@ class CGenerateSyntheticData:
                     CConfig.MIN_TOOL_CALLS_PER_SEQUENCE,
                     CConfig.MAX_TOOL_CALLS_PER_SEQUENCE,
                 )
+                if tool_calls_in_sequence == 0:
+                    insert_session_interaction_query = "INSERT INTO session_interactions (session_id, tool_id, sequence_number) VALUES (?, ?, ?);"
+                    self.dbManager.execute_query(
+                        insert_session_interaction_query,
+                        (session_id, CConfig.NO_TOOL_CALL_ID, seq_num),
+                    )
+                    continue
                 for _ in range(tool_calls_in_sequence):
                     no_of_tools = self.cache.get_number_of_tools_for_server(mcp_server_id)
                     # Give preference to MCP server used from last prompt

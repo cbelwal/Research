@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from Experiments.CConfig import CConfig
 from Experiments.DataGeneration.CGenerateSyntheticData import CGenerateSyntheticData
 
 
@@ -78,7 +79,11 @@ class TestGenerateSyntheticData(unittest.TestCase):
         "Experiments.DataGeneration.CGenerateSyntheticData.random.randint",
         side_effect=[1, 0],
     )
-    def test_sequence_can_have_no_tool_calls(self, _mock_randint, _mock_normal):
+    def test_sequence_with_no_tool_calls_inserts_sentinel(
+        self,
+        _mock_randint,
+        _mock_normal,
+    ):
         generator = self._create_generator()
 
         generator.__create_sessions_and_interactions_for_agent__(1)
@@ -88,9 +93,9 @@ class TestGenerateSyntheticData(unittest.TestCase):
             for query, params in generator.dbManager.queries
             if "INSERT INTO session_interactions" in query
         ]
-        self.assertEqual(interactions, [])
+        self.assertEqual(interactions, [(101, CConfig.NO_TOOL_CALL_ID, 0)])
 
-    def test_canary_copy_preserves_shared_sequence_numbers(self):
+    def test_canary_copy_preserves_sentinel_and_shared_sequence_numbers(self):
         generator = self._create_generator()
 
         generator.__update_sessions_and_interactions_for_canary_agent__(
@@ -98,9 +103,9 @@ class TestGenerateSyntheticData(unittest.TestCase):
             ref_session_lengths={7: 2},
             ref_session_interactions={
                 7: [
-                    (0, 101),
-                    (0, 102),
-                    (1, 103),
+                    (0, CConfig.NO_TOOL_CALL_ID),
+                    (1, 101),
+                    (1, 102),
                 ],
             },
             canary_category=1,
@@ -114,9 +119,9 @@ class TestGenerateSyntheticData(unittest.TestCase):
         self.assertEqual(
             interactions,
             [
-                (101, 101, 0),
-                (101, 102, 0),
-                (101, 103, 1),
+                (101, CConfig.NO_TOOL_CALL_ID, 0),
+                (101, 101, 1),
+                (101, 102, 1),
             ],
         )
 
