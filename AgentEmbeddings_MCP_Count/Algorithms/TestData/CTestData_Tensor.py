@@ -16,7 +16,7 @@ sys.path.append(topRootPath)
 from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 from Experiments.ExecuteExperiments.Helpers.CDistanceFunctions import CDistanceFunctions
 from Algorithms.Alg_2_AutoEncoder import Alg_2_AutoEncoder
-from Algorithms.Alg_3_MatrixFactorization import Alg_3_MatrixFactorization
+from Algorithms.Alg_3_PolynomialFit import Alg_3_PolynomialFit
 
 FILL_VALUE = 1.0e-4
 
@@ -53,8 +53,8 @@ class CTestData_Tensor(IAgentToolMatrix):
 # For local testing only
 if __name__== "__main__":
     testData = CTestData_Tensor()
-    (MAT_E,loss_for_agent) = Alg_3_MatrixFactorization(embeddingDimensions=2,
-                                                     testData=testData)
+    (MAT_E,loss_for_agent) = Alg_3_PolynomialFit(embeddingDimensions=2,
+                                                testData=testData)
     '''
     In PyTorch, the .item() method is used to extract the value 
     from a single-element tensor and convert it into a standard 

@@ -13,9 +13,10 @@ from Experiments.Database.CDatabaseManager import CDatabaseManager
 from Experiments.Plots.CPlotCommon import CPlotCommon
 
 class CPlotSyntheticData:
-    def __init__(self):
+    def __init__(self, outputDirectory=None):
         self.dbManager = CDatabaseManager()
-        
+        if outputDirectory is not None:
+            CPlotCommon.set_output_directory(outputDirectory)
     
     def plot_tools_in_each_mcp(self):
         all_tool_count = []
@@ -33,11 +34,10 @@ class CPlotSyntheticData:
 
         
     def plot_number_of_sessions_per_agent(self):
-        all_agent_sessions = []
-        agent_ids = self.dbManager.get_all_agent_ids()
-        for agent_id in agent_ids:
-            agentSession = self.dbManager.get_sessions_for_agent(agent_id)
-            all_agent_sessions.append(len(agentSession))
+        all_agent_sessions = [
+            count
+            for _, count in self.dbManager.get_session_counts_per_agent()
+        ]
         
         # There will be lot of agents so plot with histogram
         CPlotCommon.plot_histogram_y(all_agent_sessions,
@@ -49,12 +49,11 @@ class CPlotSyntheticData:
 
     
     def plot_calls_for_each_tool(self):
-        all_tool_call_count = []
-        tools_ids = self.dbManager.get_all_tool_ids()
-        for tool_id in tools_ids:
-            tool_call_count = self.dbManager.get_tool_call_count(tool_id)
-            if tool_call_count > 0:
-                all_tool_call_count.append(tool_call_count)
+        all_tool_call_count = [
+            count
+            for _, count in self.dbManager.get_tool_call_counts()
+            if count > 0
+        ]
         # There will be lot of agents so plot with histogram
         CPlotCommon.plot_histogram_y(all_tool_call_count,
                                     bins=30,                                     

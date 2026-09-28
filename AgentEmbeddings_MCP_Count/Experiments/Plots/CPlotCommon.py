@@ -1,8 +1,9 @@
 """
 Source: https://www.statology.org/creating-manipulating-polynomials-numpy/
 """
-import matplotlib.pyplot as plt
 import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 
 import os,sys
@@ -15,9 +16,15 @@ sys.path.append(topRootPath)
 #----------------------------------------------
 
 class CPlotCommon:
+    output_directory = None
+
     def __init__(self):
-        matplotlib.use('Agg')
         pass
+
+    @staticmethod
+    def set_output_directory(output_directory):
+        CPlotCommon.output_directory = output_directory
+        os.makedirs(output_directory, exist_ok=True)
 
     """
     Takes the title of the plot and returns the file path to 
@@ -37,12 +44,14 @@ class CPlotCommon:
 
 
 
-        folderPath =    os.path.dirname(
-                        os.path.dirname( #Execute Experiments
-                        #os.path.dirname( #AgentEmbeddings
-                        os.path.abspath(__file__)))
-        resultFolder = os.path.join(folderPath, "Data")
-        resultFolder = os.path.join(resultFolder, "ExperimentResults")
+        if CPlotCommon.output_directory is not None:
+            resultFolder = CPlotCommon.output_directory
+        else:
+            folderPath = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__))
+            )
+            resultFolder = os.path.join(folderPath, "Data", "ExperimentResults")
+        os.makedirs(resultFolder, exist_ok=True)
         imageFilePath = os.path.join(resultFolder, f"{title_cleaned}.svg")
         return imageFilePath
 
@@ -69,19 +78,15 @@ class CPlotCommon:
         plt.legend()
 
         # Display the plot
-        plt.show()
+        plt.close()
 
     @staticmethod
     def save_or_display_plot(plt,title,saveFile):
         if saveFile:
-             # auto resize plot window before saving
             plt.tight_layout()
             filePath = CPlotCommon.get_plot_file_path(title)
             plt.savefig(filePath, format='svg')
-            # add time delay to ensure file is saved before showing
-            #time.sleep(2)
-            #plt.show(block=False)
-        plt.show()
+        plt.close()
 
     @staticmethod
     def plot_scatter_y(y,title="Data Points",

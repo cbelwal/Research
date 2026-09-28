@@ -225,6 +225,25 @@ class CDatabaseManager:
         if result:
             return result[0][0]
         return 0
+
+    def get_session_counts_per_agent(self):
+        query = """
+        SELECT agent_id, COUNT(*)
+        FROM sessions
+        GROUP BY agent_id
+        ORDER BY agent_id;
+        """
+        return self.execute_read_query(query)
+
+    def get_tool_call_counts(self):
+        query = """
+        SELECT tool_id, COUNT(*)
+        FROM session_interactions
+        WHERE tool_id != ?
+        GROUP BY tool_id
+        ORDER BY tool_id;
+        """
+        return self.execute_read_query(query, (CConfig.NO_TOOL_CALL_ID,))
     
     def get_all_mcp_server_ids(self):
         query = "SELECT id FROM mcp_servers;"

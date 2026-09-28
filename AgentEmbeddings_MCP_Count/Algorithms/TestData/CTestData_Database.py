@@ -14,7 +14,7 @@ sys.path.append(topRootPath)
 #----------------------------------------------
 from Algorithms.Alg_1_DataPreparation import Algorithm_1_DataPreparation
 from Algorithms.Alg_2_AutoEncoder import Alg_2_AutoEncoder
-from Algorithms.Alg_3_MatrixFactorization import Alg_3_MatrixFactorization
+from Algorithms.Alg_3_PolynomialFit import Alg_3_PolynomialFit
 from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 
 from Experiments.ExecuteExperiments.Helpers.CDistanceFunctions import CDistanceFunctions
@@ -56,8 +56,8 @@ class CTestData_Database(IAgentToolMatrix):
 # For local testing only
 if __name__== "__main__":
     testData = CTestData_Database()
-    (MAT_E,loss_for_agent) = Alg_3_MatrixFactorization(embeddingDimensions=2,
-                                                     testData=testData)
+    (MAT_E,loss_for_agent) = Alg_3_PolynomialFit(embeddingDimensions=2,
+                                                testData=testData)
     
     print("Best losses for each agent:", loss_for_agent.tolist())
     
