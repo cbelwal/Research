@@ -511,6 +511,12 @@ Projects the learned embeddings (8D) down to 2D using PCA for scatter plot visua
 
 Running the plot entry point generates all plots for a given algorithm. Each plot type is implemented in a dedicated file under `Experiments/Plots/`.
 
+Plots are written as headless SVG files. Dense scatter collections with more
+than 1,000 points are rasterized inside the SVG while axes, labels, legends,
+and line plots remain vector graphics. Matplotlib text is stored as text
+rather than glyph paths. This keeps the 50,000-agent PCA and training-loss
+plots compact without changing the underlying points or visual result.
+
 ### Plots Generated (per algorithm)
 
 | Plot | What It Shows | File |
@@ -561,15 +567,21 @@ python Experiments/ExecuteExperiments/RunExperiments_Algorithms.py --force
 ```
 Experiments/Data/ExperimentResults/a50000/
 ├── agent_tool_matrix.pt
+├── raw_agent_tool_matrix.pt
 ├── Emb_dim_8/
 │   ├── agent_embeddings_a50000_alg_2.pt
 │   ├── training_loss_a50000_alg_2.pkl
 │   ├── experiment_metadata_alg_2.json
 │   ├── agent_embeddings_a50000_alg_3.pt
 │   ├── training_loss_a50000_alg_3.pkl
-│   └── experiment_metadata_alg_3.json
+│   ├── experiment_metadata_alg_3.json
+│   ├── agent_embeddings_a50000_alg_11.pt
+│   ├── experiment_metadata_alg_11.json
+│   ├── agent_embeddings_a50000_alg_21.pt
+│   ├── experiment_metadata_alg_21.json
+│   └── compact SVG plots
 └── Emb_dim_24/
-    └── corresponding Algorithm 2 and 3 result files
+    └── corresponding Algorithm 2, 3, 11, and 21 result files
 ```
 
 ### Step 3: Run PCA and Raw Baselines
@@ -585,10 +597,15 @@ CSV tables.
 ### Step 4: Generate Plots
 
 ```bash
-python Experiments/ExecuteExperiments/PlotExperimentalData.py
+python Experiments/ExecuteExperiments/PlotExperimentalData.py \
+  --dimensions 8 24 --algorithms 2 3
+python Experiments/ExecuteExperiments/PlotAlgorithmComparison.py \
+  --dimensions 8 24
 ```
 
-This generates all analysis plots for Algorithms 2 and 3.
+This generates all analysis plots for Algorithms 2 and 3 plus the four-method
+silhouette comparison. Existing SVG files are replaced with the compact
+representation described in [Visualization & Plots](#12-visualization--plots).
 
 ```bash
 # For PCA baseline plots:
