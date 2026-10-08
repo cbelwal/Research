@@ -32,6 +32,11 @@ def main():
         "3",
     )
     run(
+        "Experiments/ExecuteExperiments/RunExperiments_Baselines.py",
+        "--dimensions",
+        *dimensions,
+    )
+    run(
         "Experiments/ExecuteExperiments/PlotExperimentalData.py",
         "--dimensions",
         *dimensions,

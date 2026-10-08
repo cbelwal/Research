@@ -1,10 +1,10 @@
-"""Plot sampled silhouette scores for Algorithms 2 and 3."""
+"""Plot sampled silhouette scores for algorithms and baselines."""
 
 import argparse
 import os
 import sys
 
-import torch
+import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
@@ -36,6 +36,18 @@ def load_embeddings(algorithm_id, dimension):
     ).load_embeddings()
 
 
+def sample_embeddings(embeddings, sample_size):
+    if len(embeddings) <= sample_size:
+        return embeddings.numpy()
+    generator = np.random.default_rng(42)
+    indices = generator.choice(
+        len(embeddings),
+        size=sample_size,
+        replace=False,
+    )
+    return embeddings[indices].numpy()
+
+
 def main():
     args = parse_args()
     cluster_range = list(range(2, 11))
@@ -53,8 +65,13 @@ def main():
         for algorithm_id, name in (
             (2, "Algorithm 2 - Autoencoder"),
             (3, "Algorithm 3 - Polynomial"),
+            (11, "PCA Baseline"),
+            (21, "Raw Tool Counts"),
         ):
-            embeddings = load_embeddings(algorithm_id, dimension).numpy()
+            embeddings = sample_embeddings(
+                load_embeddings(algorithm_id, dimension),
+                CConfig.SILHOUETTE_SAMPLE_SIZE,
+            )
             scores = []
             for cluster_count in cluster_range:
                 labels = KMeans(
@@ -66,11 +83,6 @@ def main():
                     silhouette_score(
                         embeddings,
                         labels,
-                        sample_size=min(
-                            CConfig.SILHOUETTE_SAMPLE_SIZE,
-                            len(embeddings),
-                        ),
-                        random_state=42,
                     )
                 )
             series[name] = scores

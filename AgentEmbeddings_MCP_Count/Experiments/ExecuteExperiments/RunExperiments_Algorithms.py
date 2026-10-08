@@ -98,7 +98,6 @@ def build_data_fingerprint():
         "sqlite_files": {
             "database": sqlite_file_identity(database_path),
             "wal": sqlite_file_identity(f"{database_path}-wal"),
-            "shared_memory": sqlite_file_identity(f"{database_path}-shm"),
         },
         "no_tool_call_id": CConfig.NO_TOOL_CALL_ID,
         "max_agents": CConfig.MAX_AGENTS,
@@ -151,6 +150,10 @@ def build_experiment_metadata(
                 "CPolynomialFitReduction.py",
             ),
         ],
+        11: [
+            os.path.join(topRootPath, "Algorithms", "Alg_Baseline_PCA.py"),
+        ],
+        21: [],
     }
     return {
         "data_fingerprint": data_fingerprint,

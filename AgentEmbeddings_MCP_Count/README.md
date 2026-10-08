@@ -181,7 +181,7 @@ AgentEmbeddings_MCP_Count/
 │   │
 │   ├── ExecuteExperiments/
 │   │   ├── RunExperiments_Algorithms.py # MAIN ENTRY POINT: run algs 2 and 3
-│   │   ├── RunExperiments_Baseline_PCA.py  # Entry point: run PCA baseline
+│   │   ├── RunExperiments_Baselines.py  # Generate PCA and raw baselines
 │   │   ├── PlotExperimentalData.py      # MAIN ENTRY POINT: generate all plots
 │   │   ├── PlotBaselineClustering.py    # Entry point: plot PCA baseline results
 │   │   └── Helpers/
@@ -446,7 +446,7 @@ Principal Component Analysis (PCA) is a classical dimensionality reduction metho
 | Method | Neural / analytical | Linear projection |
 | New agents | Alg 2 encodes directly; Alg 3 requires refitting | Can project with the fitted PCA model |
 
-**Entry point:** `Experiments/ExecuteExperiments/RunExperiments_Baseline_PCA.py`
+**Entry point:** `Experiments/ExecuteExperiments/RunExperiments_Baselines.py`
 
 ---
 
@@ -572,11 +572,15 @@ Experiments/Data/ExperimentResults/a50000/
     └── corresponding Algorithm 2 and 3 result files
 ```
 
-### Step 3 (Optional): Run PCA Baseline
+### Step 3: Run PCA and Raw Baselines
 
 ```bash
-python Experiments/ExecuteExperiments/RunExperiments_Baseline_PCA.py
+python Experiments/ExecuteExperiments/RunExperiments_Baselines.py --dimensions 8 24
 ```
+
+The raw tool-count baseline is stored as Algorithm 21, and PCA is stored as
+Algorithm 11. Both are included in silhouette comparison plots and appendix
+CSV tables.
 
 ### Step 4: Generate Plots
 

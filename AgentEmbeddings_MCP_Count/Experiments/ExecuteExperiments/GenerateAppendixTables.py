@@ -26,7 +26,12 @@ sys.path.append(topRootPath)
 from Experiments.CConfig import CConfig
 
 
-ALGORITHM_NAMES = {2: "Autoencoder", 3: "Polynomial"}
+ALGORITHM_NAMES = {
+    2: "Autoencoder",
+    3: "Polynomial",
+    11: "PCA",
+    21: "Raw",
+}
 DEFAULT_AGENT_ID = 1
 DEFAULT_TOP_K = 5
 DEFAULT_MAX_CLUSTERS = 10
@@ -97,10 +102,11 @@ def load_experiments(results_dir: Path, dimensions: list[int]):
                 / f"agent_embeddings_a{CConfig.MAX_AGENTS}_alg_{algorithm_id}.pt"
             )
             embeddings = load_tensor(path)
-            if embeddings.shape != (CConfig.MAX_AGENTS, dimension):
+            if embeddings.shape[0] != CConfig.MAX_AGENTS or (
+                algorithm_id != 21 and embeddings.shape[1] != dimension
+            ):
                 raise ValueError(
-                    f"{path} has shape {tuple(embeddings.shape)}, expected "
-                    f"({CConfig.MAX_AGENTS}, {dimension})"
+                    f"{path} has invalid shape {tuple(embeddings.shape)}"
                 )
             experiments.append(Experiment(dimension, algorithm_id, embeddings))
     return experiments
@@ -122,6 +128,12 @@ def normalize_embeddings(embeddings: torch.Tensor) -> torch.Tensor:
     minimum = embeddings.amin(dim=0)
     span = (embeddings.amax(dim=0) - minimum).clamp_min(1e-12)
     return F.normalize((embeddings - minimum) / span, p=2, dim=1)
+
+
+def prepare_embeddings(experiment: Experiment) -> torch.Tensor:
+    if experiment.algorithm_id == 21:
+        return F.normalize(experiment.embeddings, p=2, dim=1)
+    return normalize_embeddings(experiment.embeddings)
 
 
 def nearest_agents(embeddings: torch.Tensor, agent_id: int, top_k: int):
@@ -149,31 +161,62 @@ def sampled_pairwise_mean_std(
 ):
     count = embeddings.shape[0]
     total_pairs = count * (count - 1) // 2
-    sample_count = min(max_pairs, total_pairs)
+    dimension_limited_pairs = max(
+        1,
+        CConfig.MAX_PAIR_DISTANCE_ELEMENTS // embeddings.shape[1],
+    )
+    sample_count = min(
+        max_pairs,
+        total_pairs,
+        dimension_limited_pairs,
+    )
     generator = torch.Generator().manual_seed(seed)
-    left_indices = torch.randint(0, count, (sample_count,), generator=generator)
-    right_indices = torch.randint(
-        0,
-        count - 1,
-        (sample_count,),
-        generator=generator,
-    )
-    right_indices += (right_indices >= left_indices).long()
-    left = embeddings[left_indices]
-    right = embeddings[right_indices]
-    if metric == "Cosine":
-        distances = 1.0 - F.cosine_similarity(left, right, dim=1)
-    else:
-        distances = torch.linalg.vector_norm(left - right, dim=1)
-    return (
-        float(distances.mean()),
-        float(distances.std(unbiased=False)),
-        sample_count,
-    )
+    total = 0.0
+    total_squared = 0.0
+    processed = 0
+    batch_size = 4096
+    while processed < sample_count:
+        current_size = min(batch_size, sample_count - processed)
+        left_indices = torch.randint(
+            0,
+            count,
+            (current_size,),
+            generator=generator,
+        )
+        right_indices = torch.randint(
+            0,
+            count - 1,
+            (current_size,),
+            generator=generator,
+        )
+        right_indices += (right_indices >= left_indices).long()
+        left = embeddings[left_indices]
+        right = embeddings[right_indices]
+        if metric == "Cosine":
+            distances = 1.0 - F.cosine_similarity(left, right, dim=1)
+        else:
+            distances = torch.linalg.vector_norm(left - right, dim=1)
+        distances = distances.to(dtype=torch.float64)
+        total += distances.sum().item()
+        total_squared += distances.square().sum().item()
+        processed += current_size
+    mean = total / sample_count
+    variance = max(0.0, total_squared / sample_count - mean * mean)
+    return mean, variance ** 0.5, sample_count
 
 
 def elbow_and_silhouette(embeddings: torch.Tensor, max_clusters: int):
-    values = embeddings.numpy()
+    sample_size = min(CConfig.SILHOUETTE_SAMPLE_SIZE, len(embeddings))
+    if len(embeddings) > sample_size:
+        generator = np.random.default_rng(42)
+        indices = generator.choice(
+            len(embeddings),
+            size=sample_size,
+            replace=False,
+        )
+        values = embeddings[indices].numpy()
+    else:
+        values = embeddings.numpy()
     cluster_counts = list(range(2, min(max_clusters + 1, len(values))))
     inertias = []
     models = {}
@@ -193,13 +236,7 @@ def elbow_and_silhouette(embeddings: torch.Tensor, max_clusters: int):
     ).elbow
     optimal_clusters = int(knee) if knee is not None else 2
     labels = models[optimal_clusters].labels_
-    sample_size = min(CConfig.SILHOUETTE_SAMPLE_SIZE, len(values))
-    score = silhouette_score(
-        values,
-        labels,
-        sample_size=sample_size,
-        random_state=42,
-    )
+    score = silhouette_score(values, labels)
     return optimal_clusters, float(score)
 
 
@@ -246,7 +283,7 @@ def main():
 
     distance_rows = []
     for experiment in experiments:
-        prepared = normalize_embeddings(experiment.embeddings)
+        prepared = prepare_embeddings(experiment)
         groups = [
             ("Canary 1", [value - 1 for value in canary_groups[1]]),
             ("Canary 2", [value - 1 for value in canary_groups[2]]),
