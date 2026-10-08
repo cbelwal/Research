@@ -4,6 +4,7 @@ Data is stored as torch tensors
 import os,sys
 import torch
 import pickle
+import json
 # ----------------------------------------------
 # Explicit declaration to ensure the root folder path is in sys.path 
 topRootPath = os.path.dirname(
@@ -16,8 +17,13 @@ sys.path.append(topRootPath)
 from Experiments.CConfig import CConfig
 
 class CResultsStore:
-    def __init__(self,algID:int):
+    def __init__(self,algID:int, embeddingDimensions:int=None):
         self.algID = algID
+        self.embeddingDimensions = (
+            CConfig.EMBEDDING_DIMENSIONS
+            if embeddingDimensions is None
+            else embeddingDimensions
+        )
     
     def get_folder_path(self) -> str:
         folderPath =    os.path.dirname(
@@ -36,9 +42,29 @@ class CResultsStore:
     def get_file_path(self,baseFileName) -> str:
         fileName = self.get_file_name_for_algorithm(baseFileName)
         folderPath = self.get_folder_path()
-        dbFolder = os.path.join(folderPath, "ExperimentResults")
+        dbFolder = os.path.join(
+            folderPath,
+            "ExperimentResults",
+            f"a{CConfig.MAX_AGENTS}",
+            f"Emb_dim_{self.embeddingDimensions}",
+        )
+        os.makedirs(dbFolder, exist_ok=True)
         dbFilePath = os.path.join(dbFolder, fileName)
         return dbFilePath
+
+    def get_metadata_path(self) -> str:
+        return self.get_file_path("experiment_metadata.json")
+
+    def store_metadata(self, metadata: dict):
+        with open(self.get_metadata_path(), "w", encoding="utf-8") as output:
+            json.dump(metadata, output, indent=2, sort_keys=True)
+
+    def load_metadata(self):
+        path = self.get_metadata_path()
+        if not os.path.isfile(path):
+            return None
+        with open(path, encoding="utf-8") as source:
+            return json.load(source)
 
     def store_embeddings(self, MAT_E):
         filePath = self.get_file_path(CConfig.BASE_EMBEDDINGS_FILE_NAME)
@@ -50,8 +76,7 @@ class CResultsStore:
         return MAT_E
     
     def store_training_loss(self, loss_for_each_agent):
-        fileName = self.get_file_path(CConfig.BASE_TRAINING_LOSS_FILE_NAME)
-        loss_file_path = os.path.join(self.get_folder_path(), fileName)
+        loss_file_path = self.get_file_path(CConfig.BASE_TRAINING_LOSS_FILE_NAME)
         with open(loss_file_path, 'wb') as f:
             pickle.dump(loss_for_each_agent, f)
         print(f"Training loss stored in file: {loss_file_path}")

@@ -1,4 +1,6 @@
 import os,sys
+import torch
+import torch.nn.functional as F
 # ----------------------------------------------
 # Explicit declaration to ensure the root folder path is in sys.path 
 topRootPath = os.path.dirname(
@@ -9,6 +11,7 @@ sys.path.append(topRootPath)
 from Experiments.Plots.CPlotCommon import CPlotCommon
 from Experiments.ExecuteExperiments.Helpers.CDistanceFunctions import CDistanceFunctions
 from Experiments.ExecuteExperiments.Helpers.CDistanceAnalysis import CDistanceAnalysis
+from Experiments.CConfig import CConfig
 
 class CPlotDistance:
     def __init__(self, MAT_E,algID:int=None):
@@ -20,8 +23,6 @@ class CPlotDistance:
                                           useCosine=False,
                                           printValues=False,
                                           saveFile=False):                                                                       
-        agent_id_pairs = self.distanceAnalysis.get_all_agent_id_pairs()
-        
         distanceMeasure = ""
         if useCosine:
             distanceMeasure = "Cosine"
@@ -29,23 +30,43 @@ class CPlotDistance:
             distanceMeasure = "Euclidean" 
         title = f"Algorithm {self.algID}: {distanceMeasure} distance between all agents"
 
-        distances = []
-        for (agent_id_1, agent_id_2) in agent_id_pairs:
-            embedding_1 = self.MAT_E[agent_id_1-1]
-            embedding_2 = self.MAT_E[agent_id_2-1]
-            if useCosine:
-                distance = CDistanceFunctions.cosine_distance_tensors(embedding_1,embedding_2)
-            else:
-                distance = CDistanceFunctions.euclidean_distance_tensors(embedding_1,embedding_2)
-            if printValues:
-                print(f"Agent Ids: {agent_id_1} and {agent_id_2} :: Similarity: {distance.item()}")
-            distances.append(distance.item())
+        number_of_agents = self.MAT_E.shape[0]
+        total_pairs = number_of_agents * (number_of_agents - 1) // 2
+        sample_count = min(CConfig.MAX_PAIR_SAMPLES, total_pairs)
+        generator = torch.Generator().manual_seed(42)
+        left_indices = torch.randint(
+            0,
+            number_of_agents,
+            (sample_count,),
+            generator=generator,
+        )
+        right_indices = torch.randint(
+            0,
+            number_of_agents - 1,
+            (sample_count,),
+            generator=generator,
+        )
+        right_indices += (right_indices >= left_indices).long()
+
+        left = self.MAT_E[left_indices]
+        right = self.MAT_E[right_indices]
+        if useCosine:
+            distances = (
+                1.0 - F.cosine_similarity(left, right, dim=1)
+            ).cpu().numpy()
+        else:
+            distances = torch.linalg.vector_norm(
+                left - right,
+                dim=1,
+            ).cpu().numpy()
+        if printValues:
+            print(distances)
         
         # Plot when all data points are available
         CPlotCommon.plot_histogram_y(distances,
                                     title = title,
                                     xlabel="Distance",
-                                    ylabel="Number of agent pairs",
+                                    ylabel=f"Sampled agent pairs (n={sample_count})",
                                     saveFile=saveFile)
         return
         
@@ -67,17 +88,26 @@ class CPlotDistance:
         base_canary_agent_id = agent_id_pairs[0] # Use the 1st Canary agent, they should all be similar
         # CAUTION: MAT_E is 0-indexed
         embedding_base = self.MAT_E[base_canary_agent_id-1]
-        distances = []
-        for compare_agent_id in agent_id_pairs[1:]:
-            embedding_compare = self.MAT_E[compare_agent_id - 1]
-
-            if useCosine:
-                distance = CDistanceFunctions.cosine_distance_tensors(embedding_base,embedding_compare)
-            else:
-                distance = CDistanceFunctions.euclidean_distance_tensors(embedding_base,embedding_compare)
-            if printValues:
-                print(f"Agent Ids: {base_canary_agent_id} and {compare_agent_id} :: Similarity: {distance.item()}")
-            distances.append(distance.item())
+        comparison_embeddings = self.MAT_E[
+            [agent_id - 1 for agent_id in agent_id_pairs[1:]]
+        ]
+        base_embeddings = embedding_base.expand_as(comparison_embeddings)
+        if useCosine:
+            distances = (
+                1.0
+                - F.cosine_similarity(
+                    base_embeddings,
+                    comparison_embeddings,
+                    dim=1,
+                )
+            ).cpu().numpy()
+        else:
+            distances = torch.linalg.vector_norm(
+                base_embeddings - comparison_embeddings,
+                dim=1,
+            ).cpu().numpy()
+        if printValues:
+            print(distances)
   
         # Plot when all data points are available
         CPlotCommon.plot_histogram_y(distances,

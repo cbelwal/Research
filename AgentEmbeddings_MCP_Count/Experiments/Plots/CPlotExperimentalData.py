@@ -25,13 +25,22 @@ class CPlotExperimentalData:
         4. Agent Clusters on euclidean and cosine distance
     """
     # Analyze only one A/g at a time, for memory efficiency
-    def __init__(self,algID:int):
+    def __init__(self,algID:int, embeddingDimensions:int):
         self.dbManager = CDatabaseManager()
-        resultsStore = CResultsStore(algID=algID)
+        resultsStore = CResultsStore(
+            algID=algID,
+            embeddingDimensions=embeddingDimensions,
+        )
+        CPlotCommon.set_output_directory(
+            os.path.dirname(
+                resultsStore.get_file_path(CConfig.BASE_EMBEDDINGS_FILE_NAME)
+            )
+        )
         self.MAT_E = resultsStore.load_embeddings()
         self.loss_for_each_agent = resultsStore.load_training_loss()
         self.plotDistance =  CPlotDistance(self.MAT_E,algID=algID)
         self.algID = algID
+        self.embeddingDimensions = embeddingDimensions
     
     # Plot euclidean and cosine distance between canary agents
     def plot_canary_agents(self):
@@ -149,7 +158,10 @@ class CPlotExperimentalData:
 # Testing
 if __name__ == "__main__":
     algID = 3
-    plotter = CPlotExperimentalData(algID=algID)
+    plotter = CPlotExperimentalData(
+        algID=algID,
+        embeddingDimensions=CConfig.EMBEDDING_DIMENSIONS,
+    )
     #plotter.plot_canary_agents()
     #plotter.plot_training_loss()
     #plotter.plot_embeddings_pca_xy()

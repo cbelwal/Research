@@ -14,7 +14,7 @@ A machine learning research system that generates low-dimensional **agent embedd
 6. [Data: Synthetic Generation & Database](#6-data-synthetic-generation--database)
 7. [Algorithm 1: Data Preparation](#7-algorithm-1-data-preparation)
 8. [Algorithm 2: Shared Autoencoder Embeddings](#8-algorithm-2-shared-autoencoder-embeddings)
-9. [Algorithm 3: Matrix Factorization](#9-algorithm-3-matrix-factorization)
+9. [Algorithm 3: Polynomial Fit](#9-algorithm-3-polynomial-fit)
 10. [Baseline: PCA Embeddings](#10-baseline-pca-embeddings)
 11. [Analysis & Evaluation](#11-analysis--evaluation)
 12. [Visualization & Plots](#12-visualization--plots)
@@ -59,7 +59,7 @@ An embedding is a short, dense numeric vector (e.g., 8 numbers) that summarizes 
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │                   SQLite Database                       │
-│   mcp_interactions_a100000.db                           │
+│   mcp_interactions_a50000.db                            │
 └─────────────────────────┬───────────────────────────────┘
                           │
                           ▼
@@ -72,8 +72,8 @@ An embedding is a short, dense numeric vector (e.g., 8 numbers) that summarizes 
            ▼              ▼              ▼
 ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
 │ Algorithm 2  │  │ Algorithm 3  │  │  PCA         │
-│ Shared       │  │ Matrix       │  │  Baseline    │
-│ Autoencoder  │  │ Factorization│  │              │
+│ Shared       │  │ Polynomial   │  │  Baseline    │
+│ Autoencoder  │  │ Fit          │  │              │
 │              │  │              │  │              │
 └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
        │                 │                 │
@@ -152,7 +152,7 @@ AgentEmbeddings_MCP_Count/
 │   ├── README.md                        # Algorithm contracts and usage
 │   ├── Alg_1_DataPreparation.py         # Step 1: Normalize raw interaction data
 │   ├── Alg_2_AutoEncoder.py             # Step 2a: Shared autoencoder embeddings
-│   ├── Alg_3_MatrixFactorization.py     # Step 2b: Truncated-SVD embeddings
+│   ├── Alg_3_PolynomialFit.py           # Step 2b: Polynomial-fit embeddings
 │   ├── Alg_Baseline_PCA.py              # PCA baseline
 │   ├── Alg_Data_Raw.py                  # Raw (unnormalized) data extraction
 │   ├── Unused/                           # Retired algorithm implementations
@@ -181,7 +181,7 @@ AgentEmbeddings_MCP_Count/
 │   │
 │   ├── ExecuteExperiments/
 │   │   ├── RunExperiments_Algorithms.py # MAIN ENTRY POINT: run algs 2 and 3
-│   │   ├── RunExperiments_Baseline_PCA.py  # Entry point: run PCA baseline
+│   │   ├── RunExperiments_Baselines.py  # Generate PCA and raw baselines
 │   │   ├── PlotExperimentalData.py      # MAIN ENTRY POINT: generate all plots
 │   │   ├── PlotBaselineClustering.py    # Entry point: plot PCA baseline results
 │   │   └── Helpers/
@@ -199,7 +199,7 @@ AgentEmbeddings_MCP_Count/
 │   │   └── CPlotSyntheticData.py        # Raw data distribution plots
 │   │
 │   └── Data/
-│       ├── mcp_interactions_a100000.db  # Generated SQLite database (100,000 agents)
+│       ├── mcp_interactions_a50000.db   # Generated SQLite database (50,000 agents)
 │       └── ExperimentResults/           # Output: .pt embeddings + .pkl loss files
 │
 ├── requirements.txt
@@ -217,23 +217,24 @@ All global parameters live in **`Experiments/CConfig.py`**. This is the single f
 
 ```python
 class CConfig:
-    MAX_AGENTS = 100000             # Total agents in the synthetic dataset
-    DB_FILE_NAME = "mcp_interactions_a100000.db"  # Must match MAX_AGENTS
+    MAX_AGENTS = 50000              # Total agents in the synthetic dataset
+    DB_FILE_NAME = "mcp_interactions_a50000.db"  # Must match MAX_AGENTS
 
     MAX_MCP_SERVERS = 200          # Number of MCP servers in the simulation
     MAX_TOOLS_PER_MCP_SERVER = 30  # Max tools per server (min = 1)
     MIN_TOOLS_PER_MCP_SERVER = 1
 
-    SESSIONS_PER_AGENT_MEAN = 500   # Average sessions per agent (normal dist)
-    SESSIONS_PER_AGENT_STD  = 400
+    SESSIONS_PER_AGENT_MEAN = 300   # Average sessions per agent (normal dist)
+    SESSIONS_PER_AGENT_STD  = 200
     MAX_SESSIONS_PER_AGENT = 1000  # Hard upper bound
-    SESSIONS_LENGTH_MEAN = 20      # Average sequence positions per session
-    SESSIONS_LENGTH_STD  = 10
+    SESSIONS_LENGTH_MEAN = 30      # Average sequence positions per session
+    SESSIONS_LENGTH_STD  = 20
     MIN_TOOL_CALLS_PER_SEQUENCE = 0
     MAX_TOOL_CALLS_PER_SEQUENCE = 5
     NO_TOOL_CALL_ID = -1           # Sentinel interaction for a zero-call sequence
 
     EMBEDDING_DIMENSIONS = 8       # Size of the output embedding vector
+    EMBEDDING_DIMENSIONS_TO_RUN = (8, 24)
 
     PROB_OF_TOOL_FROM_SAME_MCP = 0.33  # Probability of tool clustering behavior
 
@@ -253,7 +254,7 @@ Real MCP interaction logs may not be publicly available. Synthetic data allows c
 
 ### Database Schema
 
-The SQLite database (`mcp_interactions_a100000.db`) has 6 tables:
+The SQLite database (`mcp_interactions_a50000.db`) has 6 tables:
 
 ```
 mcp_servers          mcp_tools              agents
@@ -275,8 +276,8 @@ session_depth        tool_id (FK)           canary_category
 **File:** `Experiments/DataGeneration/CGenerateSyntheticData.py`
 
 1. **MCP Servers & Tools:** Creates 200 MCP servers, each with 1–30 tools randomly.
-2. **Agents:** Creates 100,000 agents.
-3. **Sessions:** For each agent, draws the number of sessions from `Normal(mean=500, std=400)`, clamped to the inclusive range 1–1000. Each session's depth is the number of sequence positions, drawn from `Normal(mean=20, std=10)` with a minimum of 1.
+2. **Agents:** Creates 50,000 agents.
+3. **Sessions:** For each agent, draws the number of sessions from `Normal(mean=300, std=200)`, clamped to the inclusive range 1–1000. Each session's depth is the number of sequence positions, drawn from `Normal(mean=30, std=20)` with a minimum of 1.
 4. **Session Interactions:** For each session:
    - Draw 0–5 tool calls independently for each sequence position.
    - Store every call as its own row. Calls in the same position share a `sequence_number`.
@@ -300,7 +301,7 @@ exclude it, while canary copies retain it and the original shared
 python Experiments/DataGeneration/GenerateSyntheticData.py
 ```
 
-> **Warning:** Generating `mcp_interactions_a100000.db` can take significant time and disk space.
+> **Warning:** Generating `mcp_interactions_a50000.db` can take significant time and disk space.
 
 ---
 
@@ -407,20 +408,17 @@ Run the trained encoder over every agent to produce MAT_E
 
 ---
 
-## 9. Algorithm 3: Matrix Factorization
+## 9. Algorithm 3: Polynomial Fit
 
-**File:** `Algorithms/Alg_3_MatrixFactorization.py`
+**File:** `Algorithms/Alg_3_PolynomialFit.py`
 
-Algorithm 3 applies truncated singular value decomposition to the complete
-agent-tool matrix:
-
-`agent_tool_matrix ≈ agent_embeddings × tool_factors`
-
-`TruncatedSVD` learns both factors globally. Its transformed agent factors are
-the embeddings, and each agent's mean squared reconstruction error is returned
-as that agent's loss. The method is deterministic, non-neural, and independent
-of tool ordering. The embedding dimension cannot exceed the smaller matrix
-dimension.
+Algorithm 3 fits a polynomial to each complete agent-tool vector. Tool indices
+are normalized to `[-1, 1]`, and Chebyshev polynomial coefficients form the
+embedding. The orthogonal basis is evaluated in float64 for stable 24-dimensional
+fits. The implementation shares one design matrix across agents and processes
+them in batches. Each agent's mean squared reconstruction error is returned as
+its loss. The embedding dimension determines the number of coefficients and
+cannot exceed the number of tools.
 
 ---
 
@@ -448,7 +446,7 @@ Principal Component Analysis (PCA) is a classical dimensionality reduction metho
 | Method | Neural / analytical | Linear projection |
 | New agents | Alg 2 encodes directly; Alg 3 requires refitting | Can project with the fitted PCA model |
 
-**Entry point:** `Experiments/ExecuteExperiments/RunExperiments_Baseline_PCA.py`
+**Entry point:** `Experiments/ExecuteExperiments/RunExperiments_Baselines.py`
 
 ---
 
@@ -537,7 +535,7 @@ Running the plot entry point generates all plots for a given algorithm. Each plo
 
 ### Step 1 (Optional): Regenerate Synthetic Data
 
-> Skip this step if `Experiments/Data/mcp_interactions_a100000.db` already exists.
+> Skip this step if `Experiments/Data/mcp_interactions_a50000.db` already exists.
 
 ```bash
 python Experiments/DataGeneration/GenerateSyntheticData.py
@@ -545,26 +543,44 @@ python Experiments/DataGeneration/GenerateSyntheticData.py
 
 ### Step 2: Run Embedding Algorithms
 
-This runs Algorithm 1 (data prep) then Algorithms 2 and 3 and saves results to `Experiments/Data/ExperimentResults/`.
+This runs Algorithm 1 (data prep) then Algorithms 2 and 3 and saves each run
+under `Experiments/Data/ExperimentResults/a{MAX_AGENTS}/Emb_dim_{D}/`.
 
 ```bash
 python Experiments/ExecuteExperiments/RunExperiments_Algorithms.py
 ```
 
-**Expected output files:**
-```
-Experiments/Data/ExperimentResults/
-├── agent_embeddings_alg_2.pt     # Algorithm 2 embeddings (PyTorch tensor)
-├── training_loss_alg_2.pkl      # Algorithm 2 per-agent loss (Pickle)
-├── agent_embeddings_alg_3.pt     # Algorithm 3 embeddings
-└── training_loss_alg_3.pkl      # Algorithm 3 per-agent loss
-```
-
-### Step 3 (Optional): Run PCA Baseline
+The runner validates database/config fingerprints before reusing its cached
+agent-tool matrix or prior results. Use `--force` to rebuild and recompute:
 
 ```bash
-python Experiments/ExecuteExperiments/RunExperiments_Baseline_PCA.py
+python Experiments/ExecuteExperiments/RunExperiments_Algorithms.py --force
 ```
+
+**Expected output files:**
+```
+Experiments/Data/ExperimentResults/a50000/
+├── agent_tool_matrix.pt
+├── Emb_dim_8/
+│   ├── agent_embeddings_a50000_alg_2.pt
+│   ├── training_loss_a50000_alg_2.pkl
+│   ├── experiment_metadata_alg_2.json
+│   ├── agent_embeddings_a50000_alg_3.pt
+│   ├── training_loss_a50000_alg_3.pkl
+│   └── experiment_metadata_alg_3.json
+└── Emb_dim_24/
+    └── corresponding Algorithm 2 and 3 result files
+```
+
+### Step 3: Run PCA and Raw Baselines
+
+```bash
+python Experiments/ExecuteExperiments/RunExperiments_Baselines.py --dimensions 8 24
+```
+
+The raw tool-count baseline is stored as Algorithm 21, and PCA is stored as
+Algorithm 11. Both are included in silhouette comparison plots and appendix
+CSV tables.
 
 ### Step 4: Generate Plots
 
@@ -602,8 +618,11 @@ python Experiments/ExecuteExperiments/PlotBaselineClustering.py
    └── Produces: loss_for_each_agent list
 
 5. CResultsStore (Experiments/ExecuteExperiments/Helpers/CResultsStore.py)
-   └── Saves MAT_E to agent_embeddings_alg_{N}.pt
-   └── Saves losses to training_loss_alg_{N}.pkl
+   └── Saves MAT_E to
+       ExperimentResults/a{MAX_AGENTS}/Emb_dim_{D}/
+       agent_embeddings_a{MAX_AGENTS}_alg_{N}.pt
+   └── Saves losses beside it as
+       training_loss_a{MAX_AGENTS}_alg_{N}.pkl
 
 6. Analysis (CDistanceAnalysis, CClusteringAnalysis, CTopKAgents, CPCAAnalysis)
    └── Loads .pt file, runs analysis, prints results
@@ -621,7 +640,7 @@ python Experiments/ExecuteExperiments/PlotBaselineClustering.py
 | `Experiments/CConfig.py` | All global constants | Scale up/down experiment size, change embedding dimensions |
 | `Algorithms/Alg_1_DataPreparation.py` | Normalization algorithm | Change how tool usage is normalized |
 | `Algorithms/Alg_2_AutoEncoder.py` | Shared autoencoder training | Change training parameters |
-| `Algorithms/Alg_3_MatrixFactorization.py` | Truncated-SVD embedding algorithm | Change matrix factorization behavior |
+| `Algorithms/Alg_3_PolynomialFit.py` | Polynomial-fit embedding algorithm | Change polynomial reduction behavior |
 | `Algorithms/Helpers/CDataMain.py` | Sparse dict → tensor conversion | Change fill value or indexing logic |
 | `Algorithms/Helpers/CAgentToolAutoencoder.py` | Shared autoencoder model | Change encoder or decoder architecture |
 | `Algorithms/Helpers/CSingleLayer.py` | Legacy single-layer model | Change the legacy network architecture |
@@ -659,7 +678,7 @@ The agent-tool matrix is stored as a dictionary of dictionaries rather than a de
 ### Shared and Per-Agent Training
 
 Algorithms 2 and 3 learn shared coordinate systems using an autoencoder and
-matrix factorization, respectively.
+polynomial fitting, respectively.
 
 ### ID Offset Convention
 
@@ -675,4 +694,4 @@ matrix construction.
 - **Temp store in MEMORY**: Sorts and indices done in RAM, not disk
 - **Synchronous = NORMAL**: Balances write safety with speed
 
-These are critical when generating 100,000 agents' worth of interaction data.
+These are critical when generating 50,000 agents' worth of interaction data.

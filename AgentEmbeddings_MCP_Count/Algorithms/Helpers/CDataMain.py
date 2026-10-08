@@ -22,11 +22,20 @@ from Experiments.Database.CDatabaseManager import CDatabaseManager
 FILL_VALUE = 1.0e-4
 
 class CDataMain(IAgentToolMatrix):
-    def __init__(self, all_C_hat_a: dict):
+    def __init__(self, all_C_hat_a):
+        if isinstance(all_C_hat_a, torch.Tensor):
+            if all_C_hat_a.ndim != 2:
+                raise ValueError("The agent-tool matrix must be two-dimensional")
+            self.NumberOfAgents, self.NumberOfTools = all_C_hat_a.shape
+            self.all_C_hat_a = None
+            self.matrix = all_C_hat_a
+            return
+
         dbManager = CDatabaseManager()
         self.NumberOfAgents = len(all_C_hat_a)
         self.NumberOfTools = dbManager.get_number_of_tools()
         self.all_C_hat_a = all_C_hat_a
+        self.matrix = None
 
     def NumberOfAgents(self):
         return self.NumberOfAgents
@@ -39,6 +48,9 @@ class CDataMain(IAgentToolMatrix):
     Shape: (totalNumberOfAgents, totalNumberOfTools)
     """
     def get_MAT_a_tau(self):
+        if self.matrix is not None:
+            return self.matrix
+
         # Create a tensor with specified value
     
         MAT_tau_a = torch.full((self.NumberOfAgents, self.NumberOfTools),FILL_VALUE)

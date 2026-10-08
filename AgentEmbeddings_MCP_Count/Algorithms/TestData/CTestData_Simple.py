@@ -15,7 +15,7 @@ sys.path.append(topRootPath)
 
 from Algorithms.Helpers.IAgentToolMatrix import IAgentToolMatrix
 from Algorithms.Alg_2_AutoEncoder import Alg_2_AutoEncoder
-from Algorithms.Alg_3_MatrixFactorization import Alg_3_MatrixFactorization
+from Algorithms.Alg_3_PolynomialFit import Alg_3_PolynomialFit
 from Algorithms.Alg_Baseline_PCA import Alg_Baseline_PCA
 from Experiments.ExecuteExperiments.Helpers.CDistanceFunctions import CDistanceFunctions
 
@@ -67,8 +67,8 @@ class CTestData_Simple(IAgentToolMatrix):
 # For local testing only
 if __name__== "__main__":
     testData = CTestData_Simple()
-    (MAT_E,loss_for_agent) = Alg_3_MatrixFactorization(embeddingDimensions=2,
-                                                     testData=testData)
+    (MAT_E,loss_for_agent) = Alg_3_PolynomialFit(embeddingDimensions=2,
+                                                testData=testData)
     #(MAT_E,loss_for_agent) = Alg_Baseline_PCA(embeddingDimensions=2,
     #                                           testData=testData)
     '''

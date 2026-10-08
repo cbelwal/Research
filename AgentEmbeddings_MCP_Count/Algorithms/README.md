@@ -9,7 +9,7 @@ by `Experiments/ExecuteExperiments/RunExperiments_Algorithms.py`.
 |----|------|--------|----------|
 | 1 | `Alg_1_DataPreparation.py` | Normalize agent-tool interaction counts | None |
 | 2 | `Alg_2_AutoEncoder.py` | Shared nonlinear autoencoder | Iterative |
-| 3 | `Alg_3_MatrixFactorization.py` | Truncated singular value decomposition | Direct factorization |
+| 3 | `Alg_3_PolynomialFit.py` | Polynomial coefficient reduction | Direct least-squares fit |
 | 11 | `Alg_Baseline_PCA.py` | Standardized PCA baseline | Direct projection |
 | 21 | `Alg_Data_Raw.py` | Raw tool-count baseline | None |
 
@@ -41,25 +41,17 @@ Observed tool values receive more weight than near-zero values so that sparse
 agent activity is not overwhelmed by unused tools. Training stops early when the
 average weighted reconstruction loss reaches the target.
 
-## Algorithm 3: Matrix Factorization
+## Algorithm 3: Polynomial Fit
 
-`Alg_3_MatrixFactorization` uses deterministic `TruncatedSVD` to approximate:
+`Alg_3_PolynomialFit` fits a Chebyshev polynomial to each agent's complete
+tool-usage vector. Tool indices are normalized to `[-1, 1]`, and the fitted
+coefficients become the agent embedding. The orthogonal basis and float64
+least-squares projection keep the configured 24-dimensional fit full-rank.
 
-```text
-agent_tool_matrix ~= agent_embeddings x tool_factors
-```
-
-The transformed agent factors become the embeddings. Per-agent loss is the mean
-squared error between the original and reconstructed tool-usage vectors.
-
-The requested embedding dimension must not exceed:
-
-```text
-min(number_of_agents, number_of_tools)
-```
-
-Unlike the autoencoder, matrix factorization has no epochs or learning rate. It
-is faster and linear, while the autoencoder can represent nonlinear patterns.
+The implementation computes one shared polynomial design matrix and processes
+agents in batches. Per-agent loss is the mean squared error between the original
+and polynomial-reconstructed tool-usage vectors. The embedding dimension is the
+number of polynomial coefficients and cannot exceed the number of tools.
 
 ## Baselines
 
@@ -82,8 +74,8 @@ From the `AgentEmbeddings_MCP_Count` folder:
 ```powershell
 .\.venv\Scripts\python.exe -m unittest `
   Algorithms.TestData.test_algorithm_2_autoencoder `
-  Algorithms.TestData.test_algorithm_3_matrix_factorization
+  Algorithms.TestData.test_algorithm_3_polynomial_fit
 ```
 
 The tests verify output shapes, finite reconstruction losses, canary-agent
-similarity, deterministic autoencoder training, and matrix-rank validation.
+similarity, deterministic autoencoder training, and polynomial dimension validation.
