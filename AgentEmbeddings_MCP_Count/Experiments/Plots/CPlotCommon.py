@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import os,sys
+
+matplotlib.rcParams["svg.fonttype"] = "none"
+
 # ----------------------------------------------
 # Explicit declaration to ensure the root folder path is in sys.path 
 topRootPath = os.path.dirname(
@@ -17,6 +20,7 @@ sys.path.append(topRootPath)
 
 class CPlotCommon:
     output_directory = None
+    RASTERIZE_SCATTER_THRESHOLD = 1000
 
     def __init__(self):
         pass
@@ -94,15 +98,17 @@ class CPlotCommon:
                        ylabel="y",
                        saveFile=False):
         x = np.linspace(1, len(y)-1, len(y))
-        plt.scatter(x,y,marker="x") #(x, y, 'x')#, label='Data Points')
+        plt.scatter(
+            x,
+            y,
+            marker="x",
+            rasterized=len(y) > CPlotCommon.RASTERIZE_SCATTER_THRESHOLD,
+        )
 
         # Add labels and title
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         #plt.title(title)
-
-        # Add legend
-        plt.legend()
 
         #save plot as image
         CPlotCommon.save_or_display_plot(plt,title,saveFile)
@@ -117,15 +123,17 @@ class CPlotCommon:
                        xlabel="x",
                        ylabel="y",
                        saveFile=False):
-        plt.scatter(x, y, marker='x')
+        plt.scatter(
+            x,
+            y,
+            marker='x',
+            rasterized=len(x) > CPlotCommon.RASTERIZE_SCATTER_THRESHOLD,
+        )
 
         # Add labels and title
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         #plt.title(title)
-
-        # Add legend
-        plt.legend()
 
         #save plot as image
         CPlotCommon.save_or_display_plot(plt,title,saveFile)
@@ -143,9 +151,6 @@ class CPlotCommon:
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         #plt.title(title)
-
-        # Add legend
-        plt.legend()
 
         #save plot as image
         CPlotCommon.save_or_display_plot(plt,title,saveFile)
