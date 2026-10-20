@@ -3,7 +3,7 @@
 ## Purpose of this directory
 
 This directory is a self-contained handoff of the experimental study supporting
-`Reference/agent_feasibility.pdf`. It is intended both for human review and as
+`agent_feasibility.pdf` (not bundled in this repository). It is intended both for human review and as
 input to another language model editing the paper.
 
 The study evaluates three separate questions:
