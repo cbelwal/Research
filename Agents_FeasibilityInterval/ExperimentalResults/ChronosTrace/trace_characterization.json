@@ -1,0 +1,34 @@
+[
+  {
+    "service": "code",
+    "rows": 16803695,
+    "first_timestamp_us": 1715299200009930,
+    "last_timestamp_us": 1715903999929501,
+    "duration_seconds": 604799.919571,
+    "mean_rps": 27.7838909302754,
+    "mean_input_tokens": 2511.27569103105,
+    "mean_output_tokens": 22.689729967129253,
+    "median_input_tokens_approx": 1930.0,
+    "p99_input_tokens_approx": 7685.0,
+    "median_output_tokens_approx": 8.0,
+    "p99_output_tokens_approx": 271.0,
+    "interarrival_cv": 1.962699339604704,
+    "quantile_reservoir_size": 200000
+  },
+  {
+    "service": "conversation",
+    "rows": 27303999,
+    "first_timestamp_us": 1715472000001163,
+    "last_timestamp_us": 1716076799995460,
+    "duration_seconds": 604799.994297,
+    "mean_rps": 45.145501417765864,
+    "mean_input_tokens": 1631.579539612494,
+    "mean_output_tokens": 105.5091875003365,
+    "median_input_tokens_approx": 931.0,
+    "p99_input_tokens_approx": 6653.010000000009,
+    "median_output_tokens_approx": 41.0,
+    "p99_output_tokens_approx": 697.0,
+    "interarrival_cv": 1.6924504457726794,
+    "quantile_reservoir_size": 200000
+  }
+]
