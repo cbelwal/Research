@@ -4,7 +4,7 @@ AGENT FEASIBILITY INTERVAL EXPERIMENTS
 Purpose
 -------
 This project implements the experimental study described in Section 7 of
-agent_feasibility.pdf. It uses the revised paper's exact abort-and-restart
+agent_feasibility.pdf (not bundled in this repository). It uses the revised paper's exact abort-and-restart
 semantics:
 
 1. Context assembly, decoding/tool execution, and commit are preemptible.
