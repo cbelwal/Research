@@ -15,6 +15,7 @@ from Algorithms.Alg_1_DataPreparation import BuildAgentToolMatrix
 from Algorithms.Alg_2_AutoEncoder import Alg_2_AutoEncoder
 from Algorithms.Alg_3_PolynomialFit import Alg_3_PolynomialFit
 from Algorithms.Alg_Baseline_PCA import Alg_Baseline_PCA
+from Algorithms.Alg_Baseline_NMF_KL import Alg_Baseline_NMF_KL
 
 from Algorithms.Helpers.CDataMain import CDataMain
 from Experiments.CConfig import CConfig
@@ -31,6 +32,10 @@ def run_algorithms_on_synthetic_data(agent_tool_matrix, algID:int, embeddingDime
                 testData=testData)
     elif(algID == 3):
         (MAT_E, loss_for_each_agent) = Alg_3_PolynomialFit(
+                embeddingDimensions=embeddingDimensions,
+                testData=testData)
+    elif(algID == 12):
+        (MAT_E, loss_for_each_agent) = Alg_Baseline_NMF_KL(
                 embeddingDimensions=embeddingDimensions,
                 testData=testData)
     else:
@@ -153,6 +158,9 @@ def build_experiment_metadata(
         11: [
             os.path.join(topRootPath, "Algorithms", "Alg_Baseline_PCA.py"),
         ],
+        12: [
+            os.path.join(topRootPath, "Algorithms", "Alg_Baseline_NMF_KL.py"),
+        ],
         21: [],
     }
     return {
@@ -180,7 +188,7 @@ def parse_args():
         type=int,
         nargs="+",
         default=[2, 3],
-        choices=[2, 3],
+        choices=[2, 3, 12],
     )
     parser.add_argument(
         "--force",

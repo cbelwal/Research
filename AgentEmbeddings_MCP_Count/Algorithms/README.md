@@ -11,6 +11,7 @@ by `Experiments/ExecuteExperiments/RunExperiments_Algorithms.py`.
 | 2 | `Alg_2_AutoEncoder.py` | Shared nonlinear autoencoder | Iterative |
 | 3 | `Alg_3_PolynomialFit.py` | Polynomial coefficient reduction | Direct least-squares fit |
 | 11 | `Alg_Baseline_PCA.py` | Standardized PCA baseline | Direct projection |
+| 12 | `Alg_Baseline_NMF_KL.py` | NMF with generalized KL divergence | Iterative |
 | 21 | `Alg_Data_Raw.py` | Raw tool-count baseline | None |
 
 Algorithms 2 and 3 return:
@@ -56,6 +57,9 @@ number of polynomial coefficients and cannot exceed the number of tools.
 ## Baselines
 
 - `Alg_Baseline_PCA.py` standardizes tool columns before applying PCA.
+- `Alg_Baseline_NMF_KL.py` factorizes non-negative agent-tool matrices using
+  generalized KL divergence. It uses deterministic initialization and switches
+  to mini-batch fitting for populations of at least 1,000 agents.
 - `Alg_Data_Raw.py` preserves raw tool counts for comparison.
 
 Baseline IDs are stored separately from active embedding IDs so analysis code
@@ -74,7 +78,8 @@ From the `AgentEmbeddings_MCP_Count` folder:
 ```powershell
 .\.venv\Scripts\python.exe -m unittest `
   Algorithms.TestData.test_algorithm_2_autoencoder `
-  Algorithms.TestData.test_algorithm_3_polynomial_fit
+  Algorithms.TestData.test_algorithm_3_polynomial_fit `
+  Algorithms.TestData.test_algorithm_baseline_nmf_kl
 ```
 
 The tests verify output shapes, finite reconstruction losses, canary-agent

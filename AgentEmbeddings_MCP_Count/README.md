@@ -612,6 +612,29 @@ representation described in [Visualization & Plots](#12-visualization--plots).
 python Experiments/ExecuteExperiments/PlotBaselineClustering.py
 ```
 
+### Reviewer-requested focused experiments
+
+`RunAdditionalReviewerExperiments.py` adds the narrow analyses requested during
+review: an NMF/KL baseline, production PCA and normalized raw-count baselines,
+Canary cohort retrieval, polynomial index sensitivity and conditioning, and a
+five-seed autoencoder check on a fixed subset. The script requires the
+50,000-agent SQLite database, the Agent 365 `tool_calls.csv.gz` file, and the
+published Agent 365 maps and embeddings:
+
+```bash
+python Experiments/ExecuteExperiments/RunAdditionalReviewerExperiments.py \
+  --synthetic-db <mcp_interactions_a50000.db> \
+  --production-csv <tool_calls.csv.gz> \
+  --production-agent-map <agent_id_map.csv> \
+  --production-tool-map <tool_id_map.csv> \
+  --production-results <a365-preview-070 results directory> \
+  --output-dir <additional-results directory>
+```
+
+The full NMF clustering baseline uses all synthetic agents. The retrieval,
+permutation, and seed analyses write their fixed subset sizes and seeds to
+`run_summary.json`.
+
 ---
 
 ## 14. End-to-End Data Flow
